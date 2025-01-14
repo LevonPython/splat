@@ -173,6 +173,11 @@ struct region { unsigned char color[32][3];
 		int levels;
 	      }	region;
 
+double start_angle = 0.0; // Start angle in degrees
+double end_angle = 360.0; // End angle in degrees
+int specified_angle_mode = 0;
+double radius_in_kilometers = 0.0;
+
 double elev[ARRAYSIZE+10];
 
 void point_to_point(double elev[], double tht_m, double rht_m,
@@ -3193,6 +3198,81 @@ void PlotLOSMap(struct site source, double altitude)
 		case 16:
 			mask_value=32;
 	}
+}
+void PlotLRMapSpecifiedAngles(struct site source, double altitude, char *plo_filename, double start_angle, double end_angle)
+{
+    int count;
+    struct site edge;
+    double lat, lon, angle, step, th;
+    unsigned char x, symbol[4];
+    static unsigned char mask_value = 1;
+    FILE *fd = NULL;
+
+    // Initialize variables
+    symbol[0] = '.';
+    symbol[1] = 'o';
+    symbol[2] = 'O';
+    symbol[3] = 'o';
+    count = 0;
+
+    // Define step size as 1 degree
+    step = 0.05;
+
+    // Calculate threshold for progress updates
+    th = 1;  // For simplicity, show progress for every degree processed
+
+    fprintf(stdout, "\nComputing path loss contours for \"%s\"\n", source.name);
+    fprintf(stdout, "Within angular range %.2f° to %.2f° with an RX antenna at %.2f %s AGL...\n",
+            start_angle, end_angle, metric ? altitude * METERS_PER_FOOT : altitude, metric ? "meters" : "feet");
+
+    if (plo_filename[0] != 0)
+        fd = fopen(plo_filename, "wb");
+
+    if (fd != NULL)
+    {
+        // Write header information to output file
+        fprintf(fd, "%d, %d\t; max_west, min_west\n%d, %d\t; max_north, min_north\n",
+                max_west, min_west, max_north, min_north);
+    }
+    // Loop through the angular range in 1-degree increments
+    for (angle = start_angle, x = 0; angle <= end_angle; angle += step)
+    {
+        // Calculate coordinates based on the current angle
+        lat = source.lat + max_range * sin(angle * M_PI / 180.0);
+        lon = source.lon + max_range * cos(angle * M_PI / 180.0);
+
+        // Normalize longitude
+        if (lon >= 360.0)
+            lon -= 360.0;
+        else if (lon < 0.0)
+            lon += 360.0;
+
+        edge.lat = lat;
+        edge.lon = lon;
+        edge.alt = altitude;
+
+        // Compute path loss for the current edge point
+        PlotLRPath(source, edge, mask_value, fd);
+
+        // Update progress indicator
+        count++;
+        if (count >= th)
+        {
+            fprintf(stdout, "%c", symbol[x]);
+            fflush(stdout);
+            count = 0;
+            x = (x + 1) % 4;  // Cycle through progress symbols
+        }
+    }
+
+    if (fd != NULL)
+        fclose(fd);
+
+    fprintf(stdout, "\nDone!\n");
+    fflush(stdout);
+
+    if (mask_value < 30)
+        mask_value++;
 }
 
 void PlotLRMap(struct site source, double altitude, char *plo_filename)
@@ -7813,6 +7893,7 @@ int main(int argc, char *argv[])
 		fprintf(stdout,"       -r rxsite.qth\n");
 		fprintf(stdout,"       -c plot LOS coverage of TX(s) with an RX antenna at X feet/meters AGL\n");
 		fprintf(stdout,"       -L plot path loss map of TX based on an RX at X feet/meters AGL\n");
+		fprintf(stdout,"       -LA plot path loss map of TX based on an RX at X feet/meters AGL with specified coverage angles\n");
 		fprintf(stdout,"       -s filename(s) of city/site file(s) to import (5 max)\n");
 		fprintf(stdout,"       -b filename(s) of cartographic boundary file(s) to import (5 max)\n");
 		fprintf(stdout,"       -p filename of terrain profile graph to plot\n");
@@ -8158,6 +8239,71 @@ int main(int argc, char *argv[])
 					fprintf(stdout,"c and L are exclusive options, ignoring L.\n");
 			}
 		}
+		if (strcmp(argv[x], "-LA") == 0)
+		{
+			int z = x + 1;
+
+			// Check if altitude is provided
+			if (z <= y && argv[z][0] && argv[z][0] != '-')
+			{
+
+				sscanf(argv[z], "%lf", &altitudeLR);
+
+				// Check for start angle
+				z++;
+				if (z <= y && argv[z][0] && argv[z][0] != '-')
+				{
+
+					sscanf(argv[z], "%lf", &start_angle);
+
+					// Check for end angle
+					z++;
+					if (z <= y && argv[z][0] && argv[z][0] != '-')
+					{
+
+						sscanf(argv[z], "%lf", &end_angle);
+
+					//	// Validate angles
+					//	if (start_angle < 0.0 || start_angle >= 360.0 ||
+					//			end_angle < 0.0 || end_angle > 360.0 || start_angle > end_angle)
+					//	{
+
+					//		fprintf(stderr, "Error: Invalid angle range. Start and end angles must be in [0, 360) and start_angle <= end_angle.\n");
+					//		fflush(stderr);
+					//		exit(1);
+					//	}
+
+						// Enable specified angle mode
+						map = 1;
+						LRmap = 1;
+						area_mode = 1;
+						specified_angle_mode = 1; // New flag for -LA option
+						
+						if (coverage)
+							fprintf(stdout, "specified_angle_mode is set in -L coverage settings.\n");
+
+					}
+					else
+					{
+						fprintf(stderr, "Error: End angle not specified after start angle.\n");
+						fflush(stderr);
+						exit(1);
+					}
+				}
+				else
+				{
+					fprintf(stderr, "Error: Start angle not specified after altitude.\n");
+					fflush(stderr);
+					exit(1);
+				}
+			}
+			else
+			{
+				fprintf(stderr, "Error: Altitude not specified after -LA.\n");
+				fflush(stderr);
+				exit(1);
+			}
+		}
 
 		if (strcmp(argv[x],"-l")==0)
 		{
@@ -8314,6 +8460,7 @@ int main(int argc, char *argv[])
 	if (metric)
 	{
 		altitudeLR/=METERS_PER_FOOT;	/* meters --> feet */
+		radius_in_kilometers = max_range /* keep kilometer version of the radius */
 		max_range/=KM_PER_MILE;		/* kilometers --> miles */
 		altitude/=METERS_PER_FOOT;	/* meters --> feet */
 		clutter/=METERS_PER_FOOT;	/* meters --> feet */
@@ -8752,15 +8899,30 @@ int main(int argc, char *argv[])
 
 	if (area_mode && topomap==0)
 	{
+
 		for (x=0; x<txsites && x<max_txsites; x++)
 		{
 			if (coverage)
 				PlotLOSMap(tx_site[x],altitude);
 
-			else if (ReadLRParm(tx_site[x],1))
-					PlotLRMap(tx_site[x],altitudeLR,ano_filename);
+//			else if (ReadLRParm(tx_site[x],1))
+//					PlotLRMap(tx_site[x],altitudeLR,ano_filename);
+			else if (ReadLRParm(tx_site[x], 1))
+			{
+
+				if (specified_angle_mode)
+				{
+					// Call the new function for specified angles
+					PlotLRMapSpecifiedAngles(tx_site[x], altitudeLR, ano_filename, start_angle, end_angle);
+				}
+				else
+				{
+					// Call the original function for full coverage
+					PlotLRMap(tx_site[x], altitudeLR, ano_filename);
+				}
 
 			SiteReport(tx_site[x]);
+			}
 		}
 	}
 
