@@ -3202,8 +3202,36 @@ void PlotLOSMap(struct site source, double altitude)
 			mask_value=32;
 	}
 }
+
+double AdjustAngleForNegativeXAxis(double angle) {
+
+    // Add up 90 degrees to shift reference to the positive y-axis instead of negative x-axis.
+    
+    double adjustedAngle = fmod(angle + 90.0, 360.0);
+
+    // Ensure angle is within 0–360 degrees
+    if (adjustedAngle < 0.0) {
+        adjustedAngle += 360.0;
+    }
+
+    return adjustedAngle;
+}
+
 void PlotLRMapSpecifiedAngles(struct site source, double altitude, char *plo_filename, double start_angle, double end_angle)
 {
+	/* This function performs a specified degree sweep around the
+	   transmitter site (source location), and plots the
+	   Irregular Terrain Model attenuation on the SPLAT!
+	   generated topographic map based on a receiver located
+	   at the specified altitude (in feet AGL).  Results
+	   are stored in memory, and written out in the form
+	   of a topographic map when the WritePPMLR() or
+	   WritePPMSS() functions are later invoked. */
+	   
+	// Adjust angles for the new reference (negative x-axis)
+   start_angle = AdjustAngleForNegativeXAxis(start_angle);
+   end_angle = AdjustAngleForNegativeXAxis(end_angle);
+    	
     int count;
     struct site edge;
     double lat, lon, angle, step, th;
