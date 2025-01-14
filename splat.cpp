@@ -3210,8 +3210,8 @@ double AdjustAngleForNegativeXAxis(double angle) {
     double adjustedAngle = fmod(angle + 90.0, 360.0);
 
     // Ensure angle is within 0–360 degrees
-    if (adjustedAngle < 0.0) {
-        adjustedAngle += 360.0;
+    if (adjustedAngle > 360.0) {
+        adjustedAngle -= 360.0;
     }
 
     return adjustedAngle;
@@ -3219,7 +3219,7 @@ double AdjustAngleForNegativeXAxis(double angle) {
 
 void PlotLRMapSpecifiedAngles(struct site source, double altitude, char *plo_filename, double start_angle, double end_angle)
 {
-	/* This function performs a specified degree sweep around the
+	/* This function performs a 360 degree sweep around the
 	   transmitter site (source location), and plots the
 	   Irregular Terrain Model attenuation on the SPLAT!
 	   generated topographic map based on a receiver located
@@ -3229,78 +3229,224 @@ void PlotLRMapSpecifiedAngles(struct site source, double altitude, char *plo_fil
 	   WritePPMSS() functions are later invoked. */
 	   
 	// Adjust angles for the new reference (negative x-axis)
-   start_angle = AdjustAngleForNegativeXAxis(start_angle);
-   end_angle = AdjustAngleForNegativeXAxis(end_angle);
+   	//start_angle = AdjustAngleForNegativeXAxis(start_angle);
+    	//end_angle = AdjustAngleForNegativeXAxis(end_angle);
     	
-    int count;
-    struct site edge;
-    double lat, lon, angle, step, th;
-    unsigned char x, symbol[4];
-    static unsigned char mask_value = 1;
-    FILE *fd = NULL;
+    	 /* Continue with the existing logic using the adjusted angles */
+    	printf("Adjusted Start Angle: %.2f, Adjusted End Angle: %.2f\n", start_angle, end_angle);
 
-    // Initialize variables
-    symbol[0] = '.';
-    symbol[1] = 'o';
-    symbol[2] = 'O';
-    symbol[3] = 'o';
-    count = 0;
 
-    // Define step size (e.g., 0.05°)
-    step = 0.05;
+	int y, z, count;
+	struct site edge;
+	double lat, lon, minwest, maxnorth, th;
+	double azimuth;
+	unsigned char x, symbol[4];
+	static unsigned char mask_value=1;
+	FILE *fd=NULL;
 
-    fprintf(stdout, "\nComputing path loss contours for \"%s\"\n", source.name);
-    fprintf(stdout, "Within angular range %.2f° to %.2f° with an RX antenna at %.2f %s AGL...\n",
-            start_angle, end_angle, metric ? altitude * METERS_PER_FOOT : altitude, metric ? "meters" : "feet");
+	minwest=dpp+(double)min_west;
+	maxnorth=(double)max_north-dpp;
 
-    if (plo_filename[0] != 0)
-        fd = fopen(plo_filename, "wb");
+	symbol[0]='.';
+	symbol[1]='o';
+	symbol[2]='O';
+	symbol[3]='o';
 
-    if (fd != NULL)
-    {
-        // Write header information to output file
-        fprintf(fd, "%d, %d\t; max_west, min_west\n%d, %d\t; max_north, min_north\n",
-                max_west, min_west, max_north, min_north);
-    }
-    for (angle = start_angle, x = 0; angle <= end_angle; angle += step)
-    {
-        // Calculate coordinates based on the current angle
-        lat = source.lat + max_range * sin(angle * M_PI / 180.0);
-        lon = source.lon + max_range * cos(angle * M_PI / 180.0);
+	count=0;
 
-        // Normalize longitude
-        if (lon >= 360.0)
-            lon -= 360.0;
-        else if (lon < 0.0)
-            lon += 360.0;
+	if (olditm)
+		fprintf(stdout,"\nComputing ITM ");
+	else
+		fprintf(stdout,"\nComputing ITWOM ");
 
-        edge.lat = lat;
-        edge.lon = lon;
-        edge.alt = altitude;
+	if (LR.erp==0.0)
+		fprintf(stdout,"path loss");
+	else
+	{
+		if (dbm)
+			fprintf(stdout,"signal power level");
+		else
+			fprintf(stdout,"field strength");
+	}
+ 
+	fprintf(stdout," contours of \"%s\"\nout to a radius of %.2f %s with an RX antenna at %.2f %s AGL",source.name,metric?max_range*KM_PER_MILE:max_range,metric?"kilometers":"miles",metric?altitude*METERS_PER_FOOT:altitude,metric?"meters":"feet");
 
-        // Compute path loss for the current edge point
-        PlotLRPath(source, edge, mask_value, fd);
+	if (clutter>0.0)
+		fprintf(stdout,"\nand %.2f %s of ground clutter",metric?clutter*METERS_PER_FOOT:clutter,metric?"meters":"feet");
 
-        count++;
-        if (count >= th)
-        {
-            fprintf(stdout, "%c", symbol[x]);
-            fflush(stdout);
-            count = 0;
-            x = (x + 1) % 4;
-        }
-    }
+	fprintf(stdout,"...\n\n 0%c to  25%c ",37,37);
+	fflush(stdout);
 
-    if (fd != NULL)
-	fclose(fd);
+	if (plo_filename[0]!=0)
+		fd=fopen(plo_filename,"wb");
 
-    fprintf(stdout, "\nDone!\n");
-    fflush(stdout);
+	if (fd!=NULL)
+	{
+		/* Write header information to output file */
 
-    if (mask_value < 30)
-        mask_value++;
+		fprintf(fd,"%d, %d\t; max_west, min_west\n%d, %d\t; max_north, min_north\n",max_west, min_west, max_north, min_north);
+	}
+
+	/* th=pixels/degree divided by 64 loops per
+	   progress indicator symbol (.oOo) printed. */
+	
+	th=ppd/64.0;
+
+	z=(int)(th*ReduceAngle(max_west-min_west));
+fprintf(stdout, "\nSpecifiedAngles: First Quadrant: Processing angles from %.2f to %.2f degrees...\n", minwest, max_west);;
+	for (lon=minwest, x=0, y=0; (LonDiff(lon,(double)max_west)<=0.0); y++, lon=minwest +(dpp*(double)y))
+	{
+		if (lon>=360.0)
+			lon-=360.0;
+			
+		edge.lat=max_north;
+		edge.lon=lon;
+		edge.alt=altitude;
+
+
+		// Inside the loop
+		azimuth = (Azimuth(source, edge));
+
+		// Skip points outside the specified angle range
+		if (azimuth < start_angle || azimuth > end_angle) {
+		    continue;
+		}
+		PlotLRPath(source,edge,mask_value,fd);
+		count++;
+
+		if (count==z) 
+		{
+			fprintf(stdout,"%c",symbol[x]);
+			fflush(stdout);
+			count=0;
+
+			if (x==3)
+				x=0;
+			else
+				x++;
+		}
+	}
+
+	count=0;
+	fprintf(stdout,"\n25%c to  50%c ",37,37);
+	fflush(stdout);
+	
+	z=(int)(th*(double)(max_north-min_north));
+fprintf(stdout, "\nSpecifiedAngles: Second Quadrant: Processing angles from %.2f to %.2f degrees...\n", maxnorth, min_north);;
+	for (lat=maxnorth, x=0, y=0; lat>=(double)min_north; y++, lat=maxnorth-(dpp*(double)y))
+	{
+		edge.lat=lat;
+		edge.lon=min_west;
+		edge.alt=altitude;
+		
+		// Inside the loop
+		azimuth = (Azimuth(source, edge));
+
+		// Skip points outside the specified angle range
+		if (azimuth < start_angle || azimuth > end_angle) {
+		    continue;
+		}
+		
+		PlotLRPath(source,edge,mask_value,fd);
+		count++;
+
+		if (count==z) 
+		{
+			fprintf(stdout,"%c",symbol[x]);
+			fflush(stdout);
+			count=0;
+
+			if (x==3)
+				x=0;
+			else
+				x++;
+		}
+	}
+
+	count=0;
+	fprintf(stdout,"\n50%c to  75%c ",37,37);
+	fflush(stdout);
+
+	z=(int)(th*ReduceAngle(max_west-min_west));
+fprintf(stdout, "\nSpecifiedAngles: Third Quadrant: Processing angles from %.2f to %.2f degrees...\n", minwest, max_west);;
+	for (lon=minwest, x=0, y=0; (LonDiff(lon,(double)max_west)<=0.0); y++, lon=minwest+(dpp*(double)y))
+	{
+		if (lon>=360.0)
+			lon-=360.0;
+
+		edge.lat=min_north;
+		edge.lon=lon;
+		edge.alt=altitude;
+		
+		// Inside the loop
+		azimuth = (Azimuth(source, edge));
+
+		// Skip points outside the specified angle range
+		if (azimuth < start_angle || azimuth > end_angle) {
+		    continue;
+		}
+
+		PlotLRPath(source,edge,mask_value,fd);
+		count++;
+
+		if (count==z)
+		{
+			fprintf(stdout,"%c",symbol[x]);
+			fflush(stdout);
+			count=0;
+
+			if (x==3)
+				x=0;
+			else
+				x++;
+		}
+	}
+
+	count=0;
+	fprintf(stdout,"\n75%c to 100%c ",37,37);
+	fflush(stdout);
+	
+	z=(int)(th*(double)(max_north-min_north));
+fprintf(stdout, "\nSpecifiedAngles: Forth Quadrant: Processing angles from %.2f to %.2f degrees...\n", min_north, max_north);;
+	for (lat=(double)min_north, x=0, y=0; lat<(double)max_north; y++, lat=(double)min_north+(dpp*(double)y))
+	{
+		edge.lat=lat;
+		edge.lon=max_west;
+		edge.alt=altitude;
+		
+		// Inside the loop
+		azimuth = (Azimuth(source, edge));
+
+		// Skip points outside the specified angle range
+		if (azimuth < start_angle || azimuth > end_angle) {
+		    continue;
+		}
+
+		PlotLRPath(source,edge,mask_value,fd);
+		count++;
+
+		if (count==z)
+		{
+			fprintf(stdout,"%c",symbol[x]);
+			fflush(stdout);
+			count=0;
+
+			if (x==3)
+				x=0;
+			else
+				x++;
+		}
+	}
+
+	if (fd!=NULL)
+		fclose(fd);
+
+	fprintf(stdout,"\nDone!\n");
+	fflush(stdout);
+
+	if (mask_value<30)
+		mask_value++;
 }
-
 void PlotLRMap(struct site source, double altitude, char *plo_filename)
 {
 	/* This function performs a 360 degree sweep around the
