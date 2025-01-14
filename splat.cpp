@@ -29,6 +29,9 @@
 #include <unistd.h>
 #include "fontdata.h"
 #include "splat.h"
+#include <iostream>
+#include <fstream>
+#include <iomanip>  // For formatting output
 
 #define GAMMA 2.5
 #define BZBUFFER 65536
@@ -176,7 +179,7 @@ struct region { unsigned char color[32][3];
 double start_angle = 0.0; // Start angle in degrees
 double end_angle = 360.0; // End angle in degrees
 int specified_angle_mode = 0;
-double radius_in_kilometers = 0.0;
+unsigned char transparent_mode = 0;
 
 double elev[ARRAYSIZE+10];
 
@@ -3215,11 +3218,8 @@ void PlotLRMapSpecifiedAngles(struct site source, double altitude, char *plo_fil
     symbol[3] = 'o';
     count = 0;
 
-    // Define step size as 1 degree
+    // Define step size (e.g., 0.05°)
     step = 0.05;
-
-    // Calculate threshold for progress updates
-    th = 1;  // For simplicity, show progress for every degree processed
 
     fprintf(stdout, "\nComputing path loss contours for \"%s\"\n", source.name);
     fprintf(stdout, "Within angular range %.2f° to %.2f° with an RX antenna at %.2f %s AGL...\n",
@@ -3234,7 +3234,6 @@ void PlotLRMapSpecifiedAngles(struct site source, double altitude, char *plo_fil
         fprintf(fd, "%d, %d\t; max_west, min_west\n%d, %d\t; max_north, min_north\n",
                 max_west, min_west, max_north, min_north);
     }
-    // Loop through the angular range in 1-degree increments
     for (angle = start_angle, x = 0; angle <= end_angle; angle += step)
     {
         // Calculate coordinates based on the current angle
@@ -3254,19 +3253,18 @@ void PlotLRMapSpecifiedAngles(struct site source, double altitude, char *plo_fil
         // Compute path loss for the current edge point
         PlotLRPath(source, edge, mask_value, fd);
 
-        // Update progress indicator
         count++;
         if (count >= th)
         {
             fprintf(stdout, "%c", symbol[x]);
             fflush(stdout);
             count = 0;
-            x = (x + 1) % 4;  // Cycle through progress symbols
+            x = (x + 1) % 4;
         }
     }
 
     if (fd != NULL)
-        fclose(fd);
+	fclose(fd);
 
     fprintf(stdout, "\nDone!\n");
     fflush(stdout);
@@ -3968,10 +3966,10 @@ void WritePPM(char *filename, unsigned char geo, unsigned char kml, unsigned cha
 
 	one_over_gamma=1.0/GAMMA;
 	conversion=255.0/pow((double)(max_elevation-min_elevation),one_over_gamma);
-
+	
 	width=(unsigned)(ippd*ReduceAngle(max_west-min_west));
 	height=(unsigned)(ippd*ReduceAngle(max_north-min_north));
-
+	
 	if (filename[0]==0)
 	{
 		strncpy(filename, xmtr[0].filename,254);
@@ -4713,6 +4711,34 @@ void WritePPMLR(char *filename, unsigned char geo, unsigned char kml, unsigned c
 	fflush(stdout);
 }
 
+
+// Function to write image info to a text file
+void write_image_info_to_txt(const std::string &filename, double min_x, double min_y, double max_x, double max_y, int image_width, int image_height) {
+    // Open the text file for writing
+    std::ofstream outfile(filename);
+
+    if (!outfile.is_open()) {
+        std::cerr << "Error opening file for writing: " << filename << std::endl;
+        return;
+    }
+
+    // Write the image information to the text file
+    outfile << "Image Coordinates and Size Information\n";
+    outfile << "---------------------------------------\n";
+    outfile << std::fixed << std::setprecision(6);  // Set precision for floating point numbers
+    outfile << "Min Longitude: " << min_x << "\n";
+    outfile << "Min Latitude: " << min_y << "\n";
+    outfile << "Max Longitude: " << max_x << "\n";
+    outfile << "Max Latitude: " << max_y << "\n";
+    outfile << "Image Width: " << image_width << " pixels\n";
+    outfile << "Image Height: " << image_height << " pixels\n";
+
+    // Close the file
+    outfile.close();
+
+    std::cout << "Image information written to " << filename << std::endl;
+}
+
 void WritePPMSS(char *filename, unsigned char geo, unsigned char kml, unsigned char ngs, struct site *xmtr, unsigned char txsites)
 {
 	/* This function generates a topographic map in Portable Pix Map
@@ -4788,6 +4814,20 @@ void WritePPMSS(char *filename, unsigned char geo, unsigned char kml, unsigned c
 	ckfile[x+6]='m';
 	ckfile[x+7]=0;
 
+        char pngfile[255];
+        char txtfile[255];
+        // Generate the .png filename
+        strcpy(pngfile, mapfile);
+        // change extension of pngfile from .ppm to .png
+        strcpy(pngfile + strlen(pngfile) - 4, ".png");
+
+        //change extension of mapfile from .ppm to .png 
+        strcpy(mapfile + strlen(mapfile) - 4, ".png");
+
+        // Generate the .txt filename
+        strcpy(txtfile, pngfile);
+        strcpy(txtfile + strlen(txtfile) - 4, ".txt");
+
 	minwest=((double)min_west)+dpp;
 
 	if (minwest>360.0)
@@ -4833,7 +4873,8 @@ void WritePPMSS(char *filename, unsigned char geo, unsigned char kml, unsigned c
       		fprintf(fd,"         <name>SPLAT! Signal Strength Contours</name>\n");
       		fprintf(fd,"           <description>SPLAT! Coverage</description>\n");
       		fprintf(fd,"		<Icon>\n");
-        	fprintf(fd,"              <href>%s</href>\n",mapfile);
+        	//fprintf(fd,"              <href>%s</href>\n",mapfile);
+		fprintf(fd, "              <href>%s</href>\n", pngfile);
 		fprintf(fd,"		</Icon>\n");
 		/* fprintf(fd,"            <opacity>128</opacity>\n"); */
 		fprintf(fd,"            <LatLonBox>\n");
@@ -5042,6 +5083,9 @@ void WritePPMSS(char *filename, unsigned char geo, unsigned char kml, unsigned c
 		}
 	}
 
+	// Write the data to a JSON file
+	write_image_info_to_txt(txtfile, west, north, east, south, width, height);
+	
 	if (kml==0 && geo==0)
 	{
 		/* Display legend along bottom of image
@@ -5223,11 +5267,25 @@ void WritePPMSS(char *filename, unsigned char geo, unsigned char kml, unsigned c
 		fclose(fd);
 	}
 
+//	// Construct the command to convert white to transparent
+//	snprintf(command, sizeof(command), "convert %s -transparent white %s", mapfile, pngfile);
+//
+//	// Execute the command
+//	int result = system(command);
+//
+//	if (result != 0) {
+//		fprintf(stderr, "Error: Failed to execute command: %s\n", command);
+//	} else {
+//		fprintf(stdout, "PNG file with transparency created: %s\n", pngfile);
+//	}
+
+
 	fprintf(stdout,"Done!\n");
 	fflush(stdout);
 }
 
-void WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned char ngs, struct site *xmtr, unsigned char txsites)
+
+void WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned char ngs, unsigned char transparent_mode, struct site *xmtr, unsigned char txsites)
 {
 	/* This function generates a topographic map in Portable Pix Map
 	   (PPM) format based on the signal power level values held in the
@@ -5247,8 +5305,17 @@ void WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned 
 	one_over_gamma=1.0/GAMMA;
 	conversion=255.0/pow((double)(max_elevation-min_elevation),one_over_gamma);
 
+//	fprintf(stdout, "INFO: max_west %u min_west %u \n", max_west, min_west);
+//	fflush(stdout);
+//	
+//	fprintf(stdout, "INFO: max_north %u min_north %u \n", max_north, min_north);
+//	fflush(stdout);
+	
 	width=(unsigned)(ippd*ReduceAngle(max_west-min_west));
 	height=(unsigned)(ippd*ReduceAngle(max_north-min_north));
+	
+//	fprintf(stdout, "INFO: width %u height %u \n", width, height);
+//	fflush(stdout);
 
 	LoadDBMColors(xmtr[0]);
 
@@ -5302,7 +5369,21 @@ void WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned 
 	ckfile[x+6]='m';
 	ckfile[x+7]=0;
 
+	char pngfile[255];
+	char txtfile[255];
+	char command[512];
+	// Generate the .png filename
+	strcpy(pngfile, mapfile);
+	// change extension of pngfile from .ppm to .png
+	strcpy(pngfile + strlen(pngfile) - 4, ".png");
+
 	minwest=((double)min_west)+dpp;
+	//change extension of mapfile from .ppm to .png 
+	strcpy(mapfile + strlen(mapfile) - 4, ".png");
+
+	// Generate the .txt filename
+	strcpy(txtfile, pngfile);
+	strcpy(txtfile + strlen(txtfile) - 4, ".txt");
 
 	if (minwest>360.0)
 		minwest-=360.0;
@@ -5347,9 +5428,10 @@ void WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned 
       		fprintf(fd,"         <name>SPLAT! Signal Power Level Contours</name>\n");
       		fprintf(fd,"           <description>SPLAT! Coverage</description>\n");
       		fprintf(fd,"		<Icon>\n");
-        	fprintf(fd,"              <href>%s</href>\n",mapfile);
+        	/*fprintf(fd,"              <href>%s</href>\n",mapfile);*/
+		fprintf(fd, "              <href>%s</href>\n", pngfile);
 		fprintf(fd,"		</Icon>\n");
-		/* fprintf(fd,"            <opacity>128</opacity>\n"); */
+		/*fprintf(fd,"            <opacity>128</opacity>\n");*/
 		fprintf(fd,"            <LatLonBox>\n");
 		fprintf(fd,"               <north>%.5f</north>\n",north);
 		fprintf(fd,"               <south>%.5f</south>\n",south);
@@ -5405,17 +5487,17 @@ void WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned 
 	if (kml || geo)
 	{
 		/* No bottom legend */
-
+		
 		fprintf(fd,"P6\n%u %u\n255\n",width,height);
-		fprintf(stdout,"\nWriting \"%s\" (%ux%u pixmap image)... ",mapfile,width,height);
+		fprintf(stdout,"\nWriting \"%s\" (%ux%u pixmap image)... \n",mapfile,width,height);
 	}
 
 	else
 	{
 		/* Allow for bottom legend */
-
+		
 		fprintf(fd,"P6\n%u %u\n255\n",width,height+30);
-		fprintf(stdout,"\nWriting \"%s\" (%ux%u pixmap image)... ",mapfile,width,height+30);
+		fprintf(stdout,"\nWriting \"%s\" (%ux%u pixmap image)... \n",mapfile,width,height+30);
 	}
 
 	fflush(stdout);
@@ -5503,20 +5585,36 @@ void WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned 
 				{
 					if (contour_threshold!=0 && dBm<contour_threshold)
 					{
-						if (ngs) /* No terrain */
-							fprintf(fd,"%c%c%c",255,255,255);
-						else
-						{
-							/* Display land or sea elevation */
-
-							if (dem[indx].data[x0][y0]==0)
-								fprintf(fd,"%c%c%c",0,0,170);
-							else
-							{
-								terrain=(unsigned)(0.5+pow((double)(dem[indx].data[x0][y0]-min_elevation),one_over_gamma)*conversion);
-								fprintf(fd,"%c%c%c",terrain,terrain,terrain);
-							}
+					if (transparent_mode) 
+						{/* Transparent background */
+						fprintf(fd, "%c%c%c", 0, 0, 0);  // Transparent color (use specific format if required)
+						 }
+					else if (ngs) /* No terrain */
+						fprintf(fd, "%c%c%c", 255, 255, 255);  // White background
+					else {
+						if (dem[indx].data[x0][y0] == 0)
+							fprintf(fd, "%c%c%c", 0, 0, 170);  // Sea level
+						else {
+							terrain = (unsigned)(0.5 + pow((double)(dem[indx].data[x0][y0] - min_elevation), one_over_gamma) * conversion);
+							fprintf(fd, "%c%c%c", terrain, terrain, terrain);  // Greyscale
 						}
+					}
+//
+//						if (ngs) /* No terrain */
+//
+//							fprintf(fd,"%c%c%c",255,255,255); 
+//						else
+//						{
+//							/* Display land or sea elevation */
+//
+//							if (dem[indx].data[x0][y0]==0)
+//								fprintf(fd,"%c%c%c",0,0,170);
+//							else
+//							{
+//								terrain=(unsigned)(0.5+pow((double)(dem[indx].data[x0][y0]-min_elevation),one_over_gamma)*conversion);
+//								fprintf(fd,"%c%c%c",terrain,terrain,terrain);
+//							}
+//						}
 					}
 
 					else
@@ -5528,7 +5626,12 @@ void WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned 
 
 						else  /* terrain / sea-level */
 						{
-							if (ngs)
+							if (transparent_mode)
+							{/* Transparent background */
+								fprintf(fd, "%c%c%c", 0, 0, 0);  // Transparent color (use specific format if required)
+							}
+
+							else if (ngs)
 								fprintf(fd,"%c%c%c",255,255,255);
 							else
 							{
@@ -5555,6 +5658,9 @@ void WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned 
 			}
 		}
 	}
+
+	// Write the data to a JSON file
+	write_image_info_to_txt(txtfile, west, north, east, south, width, height);
 
 	if (kml==0 && geo==0)
 	{
@@ -5813,9 +5919,24 @@ void WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned 
 		fclose(fd);
 	}
 
+
+//	// Construct the command to convert white to transparent
+//	snprintf(command, sizeof(command), "convert %s -transparent white %s", pngfile, pngfile);
+//
+//	// Execute the command
+//	int result = system(command);
+//
+//	if (result != 0) {
+//		fprintf(stderr, "Error: Failed to execute command: %s\n", command);
+//	} else {
+//		fprintf(stdout, "PNG file with transparency created: %s\n", pngfile);
+//	}
+
+
 	fprintf(stdout,"Done!\n");
 	fflush(stdout);
 }
+
 
 void GraphTerrain(struct site source, struct site destination, char *name)
 {
@@ -7375,20 +7496,51 @@ void PathReport(struct site source, struct site destination, char *name, char gr
 		unlink("profile.gp");
 }
 
-void SiteReport(struct site xmtr)
+// Function to extract the directory path up to the PPM file
+void extractSplatPath(const char *ppmFilePath, char *outputPath, size_t outputPathSize) {
+    const char *lastSlash = strrchr(ppmFilePath, '/'); // Find the last occurrence of '/'
+    if (lastSlash != NULL) {
+        size_t length = lastSlash - ppmFilePath + 1; // Include the '/' at the end
+        if (length < outputPathSize) {
+            strncpy(outputPath, ppmFilePath, length);
+            outputPath[length] = '\0'; // Null-terminate the string
+        } else {
+            fprintf(stderr, "Error: Output path buffer is too small.\n");
+        }
+    } else {
+        fprintf(stderr, "Error: Invalid PPM file path format.\n");
+    }
+}
+
+void SiteReport(const char *ppmFilePath, struct site xmtr)
 {
-	char	report_name[80];
-	double	terrain;
-	int	x, azi;
-	FILE	*fd;
+	char outputPath[256];    // Buffer to hold the directory path
+	char reportName[256];    // Buffer for the full report file path
+	char sanitizedName[256]; // Buffer for sanitized transmitter name
+	double terrain;
+	int x, azi;
+	FILE *fd;
 
-	sprintf(report_name,"%s-site_report.txt",xmtr.name);
+	// Extract the path up to the directory of the PPM file
+	extractSplatPath(ppmFilePath, outputPath, sizeof(outputPath));
 
-	for (x=0; report_name[x]!=0; x++)
-		if (report_name[x]==32 || report_name[x]==17 || report_name[x]==92 || report_name[x]==42 || report_name[x]==47)
-			report_name[x]='_';	
+	// Sanitize the transmitter name to remove invalid characters
+	strncpy(sanitizedName, xmtr.name, sizeof(sanitizedName));
+	sanitizedName[sizeof(sanitizedName) - 1] = '\0'; // Ensure null-terminated
+	for (x = 0; sanitizedName[x] != '\0'; x++) {
+		if (sanitizedName[x] == 32 || sanitizedName[x] == 17 || sanitizedName[x] == 92 || sanitizedName[x] == 42 || sanitizedName[x] == 47) {
+			sanitizedName[x] = '_';
+		}
+	}
+	// Construct the full report path
+	sprintf(reportName, "%s%s-site_report.txt", outputPath, sanitizedName);
+	/* sprintf(report_name,"%s-site_report.txt",xmtr.name);*/
 
-	fd=fopen(report_name,"w");
+	// Debug log
+	printf("Extracted output path: %s\n", outputPath);
+	printf("Full report path: %s\n", reportName);
+
+	fd=fopen(reportName,"w");
 
 	fprintf(fd,"\n\t--==[ %s v%s Site Analysis Report For: %s ]==--\n\n",splat_name, splat_version, xmtr.name);
 
@@ -7453,7 +7605,7 @@ void SiteReport(struct site xmtr)
 
 	fprintf(fd,"\n%s\n\n",dashes);
 	fclose(fd);
-	fprintf(stdout,"\nSite analysis report written to: \"%s\"\n",report_name);
+	fprintf(stdout,"\nSite analysis report written to: \"%s\"\n",reportName);
 }
 
 void LoadTopoData(int max_lon, int min_lon, int max_lat, int min_lat)
@@ -7876,7 +8028,7 @@ int main(int argc, char *argv[])
 
 	FILE		*fd;
 
-	strncpy(splat_version,"1.4.2\0",6);
+	strncpy(splat_version,"1.4.3\0",6);
 
 	if (HD_MODE==1)
 		strncpy(splat_name,"SPLAT! HD\0",10);
@@ -7914,7 +8066,8 @@ int main(int argc, char *argv[])
 		fprintf(stdout,"      -nf do not plot Fresnel zones in height plots\n");
 		fprintf(stdout,"      -fz Fresnel zone clearance percentage (default = 60)\n");
 		fprintf(stdout,"      -gc ground clutter height (feet/meters)\n");
-		fprintf(stdout,"     -ngs display greyscale topography as white in .ppm files\n"); 	
+		fprintf(stdout,"     -ngs display greyscale topography as white in .ppm files\n"); 
+		fprintf(stdout,"     -trans display transparent topography in .ppm files\n"); 	
 		fprintf(stdout,"     -erp override ERP in .lrp file (Watts)\n");
 		fprintf(stdout,"     -ano name of alphanumeric output file\n");
 		fprintf(stdout,"     -ani name of alphanumeric input file\n");
@@ -8239,6 +8392,11 @@ int main(int argc, char *argv[])
 					fprintf(stdout,"c and L are exclusive options, ignoring L.\n");
 			}
 		}
+		if (strcmp(argv[x], "-trans") == 0) {
+			fprintf(stdout, "trasnparent mode activated");
+			fflush(stdout);
+			transparent_mode = 1;  // Enable transparency mode
+		}
 		if (strcmp(argv[x], "-LA") == 0)
 		{
 			int z = x + 1;
@@ -8460,7 +8618,6 @@ int main(int argc, char *argv[])
 	if (metric)
 	{
 		altitudeLR/=METERS_PER_FOOT;	/* meters --> feet */
-		radius_in_kilometers = max_range /* keep kilometer version of the radius */
 		max_range/=KM_PER_MILE;		/* kilometers --> miles */
 		altitude/=METERS_PER_FOOT;	/* meters --> feet */
 		clutter/=METERS_PER_FOOT;	/* meters --> feet */
@@ -8543,7 +8700,7 @@ int main(int argc, char *argv[])
 		else
 		{
 		       	if (dbm)
-				WritePPMDBM(mapfile,geo,kml,ngs,tx_site,txsites);
+				WritePPMDBM(mapfile,geo,kml,ngs,transparent_mode, tx_site,txsites);
 			else
 				WritePPMSS(mapfile,geo,kml,ngs,tx_site,txsites);
 		}
@@ -8840,7 +8997,7 @@ int main(int argc, char *argv[])
 			}
 
 			if (nositereports==0)
-				SiteReport(tx_site[x]);
+				SiteReport(mapfile, tx_site[x]);
 
 			if (kml)
 				WriteKML(tx_site[x],rx_site);
@@ -8921,7 +9078,7 @@ int main(int argc, char *argv[])
 					PlotLRMap(tx_site[x], altitudeLR, ano_filename);
 				}
 
-			SiteReport(tx_site[x]);
+			SiteReport(mapfile, tx_site[x]);
 			}
 		}
 	}
@@ -8968,7 +9125,7 @@ int main(int argc, char *argv[])
 				WritePPMLR(mapfile,geo,kml,ngs,tx_site,txsites);
 			else
 				if (dbm)
-					WritePPMDBM(mapfile,geo,kml,ngs,tx_site,txsites);
+					WritePPMDBM(mapfile,geo,kml,ngs, transparent_mode, tx_site,txsites);
 				else
 					WritePPMSS(mapfile,geo,kml,ngs,tx_site,txsites);
 		}
