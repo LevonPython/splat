@@ -20,13 +20,89 @@
 *									     *
 \****************************************************************************/
 
+#include <stdio.h>
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include <bzlib.h>
+#include <unistd.h>
+#include "fontdata.h"
 #include "splat.h"
+#include <iostream>
+#include <fstream>
+#include <iomanip>  // For formatting output
 
-		    
 #define GAMMA 2.5
 #define BZBUFFER 65536
 
+#if HD_MODE==0
+	#if MAXPAGES==4
+	#define ARRAYSIZE 4950
+	#endif
 
+	#if MAXPAGES==9
+	#define ARRAYSIZE 10870
+	#endif
+
+	#if MAXPAGES==16
+	#define ARRAYSIZE 19240
+	#endif
+
+	#if MAXPAGES==25
+	#define ARRAYSIZE 30025
+	#endif
+
+	#if MAXPAGES==36
+	#define ARRAYSIZE 43217
+	#endif
+
+	#if MAXPAGES==49
+	#define ARRAYSIZE 58813
+	#endif
+
+	#if MAXPAGES==64
+	#define ARRAYSIZE 76810
+	#endif
+
+	#define IPPD 1200
+#endif
+
+#if HD_MODE==1
+	#if MAXPAGES==1
+	#define ARRAYSIZE 5092 
+	#endif
+
+	#if MAXPAGES==4
+	#define ARRAYSIZE 14844 
+	#endif
+
+	#if MAXPAGES==9
+	#define ARRAYSIZE 32600
+	#endif
+
+	#if MAXPAGES==16
+	#define ARRAYSIZE 57713
+	#endif
+
+	#if MAXPAGES==25
+	#define ARRAYSIZE 90072
+	#endif
+
+	#if MAXPAGES==36
+	#define ARRAYSIZE 129650
+	#endif
+
+	#if MAXPAGES==49 
+	#define ARRAYSIZE 176437
+	#endif
+
+	#if MAXPAGES==64
+	#define ARRAYSIZE 230430
+	#endif
+
+	#define IPPD 3600
+#endif
 
 #ifndef PI
 #define PI 3.141592653589793
@@ -47,31 +123,79 @@
 #define	KM_PER_MILE 1.609344
 #define FOUR_THIRDS 1.3333333333333
 
-SplatProcessor::SplatProcessor()
-	: opened(0), 
-	gpsav(0),
-       	max_range(0.0),
-	forced_erp(-1.0),
-	fzone_clearance(0.6),
-	min_north(90),
-       	max_north(-90),
-       	min_west(360),
-       	max_west(-1),
-	max_elevation(-32768),
-	min_elevation(32768),
-	metric(0),
-	dbm(0),
-	smooth_contours(0),
+char 	string[255], sdf_path[255], opened=0, gpsav=0, splat_name[10],
+	splat_version[6], dashes[80], olditm;
 
-	start_angle(0.0), // Start angle in degrees
-	end_angle(360.0), // End angle in degrees
-	specified_angle_mode(0),
-	transparent_mode(0)
-{
-}
-	
+double	earthradius, max_range=0.0, forced_erp=-1.0, dpp, ppd,
+	fzone_clearance=0.6, forced_freq, clutter;
 
-int SplatProcessor::interpolate(int y0, int y1, int x0, int x1, int n)
+int	min_north=90, max_north=-90, min_west=360, max_west=-1, ippd, mpi,
+	max_elevation=-32768, min_elevation=32768, bzerror, contour_threshold;
+
+unsigned char got_elevation_pattern, got_azimuth_pattern, metric=0, dbm=0, smooth_contours=0;
+
+struct site {	double lat;
+		double lon;
+		float alt;
+		char name[50];
+		char filename[255];
+	    } 	site;
+
+struct path {	double lat[ARRAYSIZE];
+		double lon[ARRAYSIZE];
+		double elevation[ARRAYSIZE];
+		double distance[ARRAYSIZE];
+		int length;
+	    }	path;
+
+struct dem {	int min_north;
+		int max_north;
+		int min_west;
+		int max_west;
+		int max_el;
+		int min_el;
+		short data[IPPD][IPPD];
+		unsigned char mask[IPPD][IPPD];
+		unsigned char signal[IPPD][IPPD];
+           }	dem[MAXPAGES];
+
+struct LR {	double eps_dielect; 
+		double sgm_conductivity; 
+		double eno_ns_surfref;
+		double frq_mhz; 
+		double conf; 
+		double rel;
+		double erp;
+		int radio_climate;  
+		int pol;
+		float antenna_pattern[361][1001];
+          }	LR;
+
+struct region { unsigned char color[32][3];
+		int level[32];
+		int levels;
+	      }	region;
+
+double start_angle = 0.0; // Start angle in degrees
+double end_angle = 360.0; // End angle in degrees
+int specified_angle_mode = 0;
+unsigned char transparent_mode = 0;
+
+double elev[ARRAYSIZE+10];
+
+void point_to_point(double elev[], double tht_m, double rht_m,
+	  double eps_dielect, double sgm_conductivity, double eno_ns_surfref,
+	  double frq_mhz, int radio_climate, int pol, double conf,
+	  double rel, double &dbloss, char *strmode, int &errnum);
+
+void point_to_point_ITM(double elev[], double tht_m, double rht_m,
+	  double eps_dielect, double sgm_conductivity, double eno_ns_surfref,
+	  double frq_mhz, int radio_climate, int pol, double conf,
+	  double rel, double &dbloss, char *strmode, int &errnum);
+
+double ITWOMVersion();
+
+int interpolate(int y0, int y1, int x0, int x1, int n)
 {
 	/* Perform linear interpolation between quantized contour
 	   levels displayed in field strength and path loss maps.
@@ -103,7 +227,7 @@ int SplatProcessor::interpolate(int y0, int y1, int x0, int x1, int n)
 	return result;
 }
 
-double SplatProcessor::arccos(double x, double y)
+double arccos(double x, double y)
 {
 	/* This function implements the arc cosine function,
 	   returning a value between 0 and TWOPI. */
@@ -119,7 +243,7 @@ double SplatProcessor::arccos(double x, double y)
 	return result;
 }
 
-int SplatProcessor::ReduceAngle(double angle)
+int ReduceAngle(double angle)
 {
 	/* This function normalizes the argument to
 	   an integer angle between 0 and 180 degrees */
@@ -131,7 +255,7 @@ int SplatProcessor::ReduceAngle(double angle)
 	return (int)rint(temp/DEG2RAD);
 }
 
-double SplatProcessor::LonDiff(double lon1, double lon2)
+double LonDiff(double lon1, double lon2)
 {
 	/* This function returns the short path longitudinal
 	   difference between longitude1 and longitude2 
@@ -152,7 +276,7 @@ double SplatProcessor::LonDiff(double lon1, double lon2)
 	return diff;
 }
 
-char* SplatProcessor::dec2dms(double decimal)
+char *dec2dms(double decimal)
 {
 	/* Converts decimal degrees to degrees, minutes, seconds,
 	   (DMS) and returns the result as a character string. */
@@ -190,7 +314,7 @@ char* SplatProcessor::dec2dms(double decimal)
 	return (string);
 }
 
-int SplatProcessor::PutMask(double lat, double lon, int value)
+int PutMask(double lat, double lon, int value)
 {
 	/* Lines, text, markings, and coverage areas are stored in a
 	   mask that is combined with topology data when topographic
@@ -222,7 +346,7 @@ int SplatProcessor::PutMask(double lat, double lon, int value)
 		return -1;
 }
 
-int SplatProcessor::OrMask(double lat, double lon, int value)
+int OrMask(double lat, double lon, int value)
 {
 	/* Lines, text, markings, and coverage areas are stored in a
 	   mask that is combined with topology data when topographic
@@ -254,7 +378,7 @@ int SplatProcessor::OrMask(double lat, double lon, int value)
 		return -1;
 }
 
-int SplatProcessor::GetMask(double lat, double lon)
+int GetMask(double lat, double lon)
 {
 	/* This function returns the mask bits based on the latitude
 	   and longitude given. */
@@ -262,7 +386,7 @@ int SplatProcessor::GetMask(double lat, double lon)
 	return (OrMask(lat,lon,0));
 }
 
-int SplatProcessor::PutSignal(double lat, double lon, unsigned char signal)
+int PutSignal(double lat, double lon, unsigned char signal)
 {
 	/* This function writes a signal level (0-255)
 	   at the specified location for later recall. */
@@ -291,7 +415,7 @@ int SplatProcessor::PutSignal(double lat, double lon, unsigned char signal)
 		return 0;
 }
 
-unsigned char SplatProcessor::GetSignal(double lat, double lon)
+unsigned char GetSignal(double lat, double lon)
 {
 	/* This function reads the signal level (0-255) at the
 	   specified location that was previously written by the
@@ -317,7 +441,7 @@ unsigned char SplatProcessor::GetSignal(double lat, double lon)
 		return 0;
 }
 
-double SplatProcessor::GetElevation(struct site location)
+double GetElevation(struct site location)
 {
 	/* This function returns the elevation (in feet) of any location
 	   represented by the digital elevation model data in memory.
@@ -346,7 +470,7 @@ double SplatProcessor::GetElevation(struct site location)
 	return elevation;
 }
 
-int SplatProcessor::AddElevation(double lat, double lon, double height)
+int AddElevation(double lat, double lon, double height)
 {
 	/* This function adds a user-defined terrain feature
 	   (in meters AGL) to the digital elevation model data
@@ -373,7 +497,7 @@ int SplatProcessor::AddElevation(double lat, double lon, double height)
 	return found;
 }
 
-double SplatProcessor::Distance(struct site site1, struct site site2)
+double Distance(struct site site1, struct site site2)
 {
 	/* This function returns the great circle distance
 	   in miles between any two site locations. */
@@ -390,7 +514,7 @@ double SplatProcessor::Distance(struct site site1, struct site site2)
 	return distance;
 }
 
-double SplatProcessor::Azimuth(struct site source, struct site destination)
+double Azimuth(struct site source, struct site destination)
 {
 	/* This function returns the azimuth (in degrees) to the
 	   destination as seen from the location of the source. */
@@ -442,7 +566,7 @@ double SplatProcessor::Azimuth(struct site source, struct site destination)
 	return (azimuth/DEG2RAD);		
 }
 
-double SplatProcessor::ElevationAngle(struct site source, struct site destination)
+double ElevationAngle(struct site source, struct site destination)
 {
 	/* This function returns the angle of elevation (in degrees)
 	   of the destination as seen from the source location.
@@ -456,14 +580,14 @@ double SplatProcessor::ElevationAngle(struct site source, struct site destinatio
 	a=GetElevation(destination)+destination.alt+earthradius;
 	b=GetElevation(source)+source.alt+earthradius;
 
-	dx=5280.0*Distance(source,destination);
+ 	dx=5280.0*Distance(source,destination);
 
 	/* Apply the Law of Cosines */
 
 	return ((180.0*(acos(((b*b)+(dx*dx)-(a*a))/(2.0*b*dx)))/PI)-90.0);
 }
 
-void SplatProcessor::ReadPath(struct site source, struct site destination)
+void ReadPath(struct site source, struct site destination)
 {
 	/* This function generates a sequence of latitude and
 	   longitude positions between source and destination
@@ -579,7 +703,7 @@ void SplatProcessor::ReadPath(struct site source, struct site destination)
 		path.length=ARRAYSIZE-1;
 }
 
-double SplatProcessor::ElevationAngle2(struct site source, struct site destination, double er)
+double ElevationAngle2(struct site source, struct site destination, double er)
 {
 	/* This function returns the angle of elevation (in degrees)
 	   of the destination as seen from the source location, UNLESS
@@ -648,7 +772,7 @@ double SplatProcessor::ElevationAngle2(struct site source, struct site destinati
 	return elevation;
 }
 
-double SplatProcessor::AverageTerrain(struct site source, double azimuthx, double start_distance, double end_distance)
+double AverageTerrain(struct site source, double azimuthx, double start_distance, double end_distance)
 {
 	/* This function returns the average terrain calculated in
 	   the direction of "azimuth" (degrees) between "start_distance"
@@ -742,7 +866,7 @@ double SplatProcessor::AverageTerrain(struct site source, double azimuthx, doubl
 	}
 }
 
-double SplatProcessor::haat(struct site antenna)
+double haat(struct site antenna)
 {
 	/* This function returns the antenna's Height Above Average
 	   Terrain (HAAT) based on FCC Part 73.313(d).  If a critical
@@ -781,7 +905,7 @@ double SplatProcessor::haat(struct site antenna)
 	}
 }
 
-void SplatProcessor::PlaceMarker(struct site location)
+void PlaceMarker(struct site location)
 {
 	/* This function places text and marker data in the mask array
 	   for illustration on topographic maps generated by SPLAT!.
@@ -996,7 +1120,7 @@ void SplatProcessor::PlaceMarker(struct site location)
 	}
 }
 
-double SplatProcessor::ReadBearing(char *input)
+double ReadBearing(char *input)
 {
 	/* This function takes numeric input in the form of a character
 	   string, and returns an equivalent bearing in degrees as a
@@ -1059,7 +1183,7 @@ double SplatProcessor::ReadBearing(char *input)
 	return bearing;
 }
 
-SplatProcessor::site SplatProcessor::LoadQTH(char *filename)
+struct site LoadQTH(char *filename)
 {
 	/* This function reads SPLAT! .qth (site location) files.
 	   The latitude and longitude may be expressed either in
@@ -1154,7 +1278,7 @@ SplatProcessor::site SplatProcessor::LoadQTH(char *filename)
 	return tempsite;
 }
 
-void SplatProcessor::LoadPAT(char *filename)
+void LoadPAT(char *filename)
 {
 	/* This function reads and processes antenna pattern (.az
 	   and .el) files that correspond in name to previously
@@ -1520,7 +1644,7 @@ void SplatProcessor::LoadPAT(char *filename)
 	}
 }
 
-int SplatProcessor::LoadSDF_SDF(char *name)
+int LoadSDF_SDF(char *name)
 {
 	/* This function reads uncompressed SPLAT Data Files (.sdf)
 	   containing digital elevation model data into memory.
@@ -1647,13 +1771,13 @@ int SplatProcessor::LoadSDF_SDF(char *name)
 			{
 				if (abs(dem[indx].max_west-max_west)<180)
 				{
-					if (dem[indx].max_west>max_west)
+ 					if (dem[indx].max_west>max_west)
 						max_west=dem[indx].max_west;
 				}
 
 				else
 				{
-					if (dem[indx].max_west<max_west)
+ 					if (dem[indx].max_west<max_west)
 						max_west=dem[indx].max_west;
 				}
 			}
@@ -1665,13 +1789,13 @@ int SplatProcessor::LoadSDF_SDF(char *name)
 			{
 				if (fabs(dem[indx].min_west-min_west)<180.0)
 				{
-					if (dem[indx].min_west<min_west)
+ 					if (dem[indx].min_west<min_west)
 						min_west=dem[indx].min_west;
 				}
 
 				else
 				{
-					if (dem[indx].min_west>min_west)
+ 					if (dem[indx].min_west>min_west)
 						min_west=dem[indx].min_west;
 				}
 			}
@@ -1690,7 +1814,7 @@ int SplatProcessor::LoadSDF_SDF(char *name)
 		return 0;
 }
 
-char* SplatProcessor::BZfgets(BZFILE *bzfd, unsigned length)
+char *BZfgets(BZFILE *bzfd, unsigned length)
 {
 	/* This function returns at most one less than 'length' number
 	   of characters from a bz2 compressed file whose file descriptor
@@ -1749,7 +1873,7 @@ char* SplatProcessor::BZfgets(BZFILE *bzfd, unsigned length)
 	return (output);
 }
 
-int SplatProcessor::LoadSDF_BZ(char *name)
+int LoadSDF_BZ(char *name)
 {
 	/* This function reads .bz2 compressed SPLAT Data Files containing
 	   digital elevation model data into memory.  Elevation data,
@@ -1877,13 +2001,13 @@ int SplatProcessor::LoadSDF_BZ(char *name)
 			{
 				if (abs(dem[indx].max_west-max_west)<180)
 				{
-					if (dem[indx].max_west>max_west)
+ 					if (dem[indx].max_west>max_west)
 						max_west=dem[indx].max_west;
 				}
 
 				else
 				{
-					if (dem[indx].max_west<max_west)
+ 					if (dem[indx].max_west<max_west)
 						max_west=dem[indx].max_west;
 				}
 			}
@@ -1895,13 +2019,13 @@ int SplatProcessor::LoadSDF_BZ(char *name)
 			{
 				if (abs(dem[indx].min_west-min_west)<180)
 				{
-					if (dem[indx].min_west<min_west)
+ 					if (dem[indx].min_west<min_west)
 						min_west=dem[indx].min_west;
 				}
 
 				else
 				{
-					if (dem[indx].min_west>min_west)
+ 					if (dem[indx].min_west>min_west)
 						min_west=dem[indx].min_west;
 				}
 			}
@@ -1920,7 +2044,7 @@ int SplatProcessor::LoadSDF_BZ(char *name)
 		return 0;
 }
 
-char SplatProcessor::LoadSDF(char *name)
+char LoadSDF(char *name)
 {
 	/* This function loads the requested SDF file from the filesystem.
 	   It first tries to invoke the LoadSDF_SDF() function to load an
@@ -1986,7 +2110,7 @@ char SplatProcessor::LoadSDF(char *name)
 			for (x=0; x<ippd; x++)
 				for (y=0; y<ippd; y++)
 				{
-					dem[indx].data[x][y]=0;
+		    			dem[indx].data[x][y]=0;
 					dem[indx].signal[x][y]=0;
 					dem[indx].mask[x][y]=0;
 
@@ -2019,13 +2143,13 @@ char SplatProcessor::LoadSDF(char *name)
 			{
 				if (abs(dem[indx].max_west-max_west)<180)
 				{
-					if (dem[indx].max_west>max_west)
+ 					if (dem[indx].max_west>max_west)
 						max_west=dem[indx].max_west;
 				}
 
 				else
 				{
-					if (dem[indx].max_west<max_west)
+ 					if (dem[indx].max_west<max_west)
 						max_west=dem[indx].max_west;
 				}
 			}
@@ -2037,13 +2161,13 @@ char SplatProcessor::LoadSDF(char *name)
 			{
 				if (abs(dem[indx].min_west-min_west)<180)
 				{
-					if (dem[indx].min_west<min_west)
+ 					if (dem[indx].min_west<min_west)
 						min_west=dem[indx].min_west;
 				}
 
 				else
 				{
-					if (dem[indx].min_west>min_west)
+ 					if (dem[indx].min_west>min_west)
 						min_west=dem[indx].min_west;
 				}
 			}
@@ -2058,7 +2182,7 @@ char SplatProcessor::LoadSDF(char *name)
 	return return_value;
 }
 
-void SplatProcessor::LoadCities(char *filename)
+void LoadCities(char *filename)
 {
 	/* This function reads SPLAT! city/site files, and plots
 	   the locations and names of the cities and site locations
@@ -2120,7 +2244,7 @@ void SplatProcessor::LoadCities(char *filename)
 		fprintf(stderr,"\n*** ERROR: \"%s\": not found!",filename);
 }
 
-void SplatProcessor::LoadUDT(char *filename)
+void LoadUDT(char *filename)
 {
 	/* This function reads a file containing User-Defined Terrain
 	   features for their addition to the digital elevation model
@@ -2278,7 +2402,7 @@ void SplatProcessor::LoadUDT(char *filename)
 	fprintf(stdout,"\n");
 }
 
-void SplatProcessor::LoadBoundaries(char *filename)
+void LoadBoundaries(char *filename)
 {
 	/* This function reads Cartographic Boundary Files available from
 	   the U.S. Census Bureau, and plots the data contained in those
@@ -2342,7 +2466,7 @@ void SplatProcessor::LoadBoundaries(char *filename)
 		fprintf(stderr,"\n*** ERROR: \"%s\": not found!",filename);
 }
 
-char SplatProcessor::ReadLRParm(struct site txsite, char forced_read)
+char ReadLRParm(struct site txsite, char forced_read)
 {
 	/* This function reads ITM parameter data for the transmitter
 	   site.  The file name is the same as the txsite, except the
@@ -2598,7 +2722,7 @@ char SplatProcessor::ReadLRParm(struct site txsite, char forced_read)
 	return (return_value);
 }
 
-void SplatProcessor::PlotPath(struct site source, struct site destination, char mask_value)
+void PlotPath(struct site source, struct site destination, char mask_value)
 {
 	/* This function analyzes the path between the source and
 	   destination locations.  It determines which points along
@@ -2656,7 +2780,7 @@ void SplatProcessor::PlotPath(struct site source, struct site destination, char 
 	}
 }
 
-void SplatProcessor::PlotLRPath(struct site source, struct site destination, unsigned char mask_value, FILE *fd)
+void PlotLRPath(struct site source, struct site destination, unsigned char mask_value, FILE *fd)
 {
 	/* This function plots the RF path loss between source and
 	   destination points based on the ITWOM propagation model,
@@ -2748,7 +2872,7 @@ void SplatProcessor::PlotLRPath(struct site source, struct site destination, uns
 					   the cosines of these angles rather than
 					   the angles themselves, the sense of the
 					   following "if" statement is reversed from
-					   what it would be if the angles themselves
+				  	   what it would be if the angles themselves
 					   were compared. */
 
 					if (cos_rcvr_angle>=cos_test_angle)
@@ -2775,14 +2899,14 @@ void SplatProcessor::PlotLRPath(struct site source, struct site destination, uns
 
 			if (olditm)
 				point_to_point_ITM(elev,source.alt*METERS_PER_FOOT, 
-				destination.alt*METERS_PER_FOOT, LR.eps_dielect,
+  		 		destination.alt*METERS_PER_FOOT, LR.eps_dielect,
 				LR.sgm_conductivity, LR.eno_ns_surfref, LR.frq_mhz,
 				LR.radio_climate, LR.pol, LR.conf, LR.rel, loss,
 				strmode, errnum);
 
 			else
 				point_to_point(elev,source.alt*METERS_PER_FOOT, 
-				destination.alt*METERS_PER_FOOT, LR.eps_dielect,
+  	 			destination.alt*METERS_PER_FOOT, LR.eps_dielect,
 				LR.sgm_conductivity, LR.eno_ns_surfref, LR.frq_mhz,
 				LR.radio_climate, LR.pol, LR.conf, LR.rel, loss,
 				strmode, errnum);
@@ -2905,7 +3029,7 @@ void SplatProcessor::PlotLRPath(struct site source, struct site destination, uns
 	}
 }
 
-void SplatProcessor::PlotLOSMap(struct site source, double altitude)
+void PlotLOSMap(struct site source, double altitude)
 {
 	/* This function performs a 360 degree sweep around the
 	   transmitter site (source location), and plots the
@@ -3079,21 +3203,21 @@ void SplatProcessor::PlotLOSMap(struct site source, double altitude)
 	}
 }
 
-double SplatProcessor::AdjustAngleForNegativeXAxis(double angle) 
-{
+double AdjustAngleForNegativeXAxis(double angle) {
+
     // Add up 90 degrees to shift reference to the positive y-axis instead of negative x-axis.
     
     double adjustedAngle = fmod(angle + 90.0, 360.0);
 
     // Ensure angle is within 0–360 degrees
     if (adjustedAngle > 360.0) {
-	adjustedAngle -= 360.0;
+        adjustedAngle -= 360.0;
     }
 
     return adjustedAngle;
 }
 
-void SplatProcessor::PlotLRMapSpecifiedAngles(struct site source, double altitude, char *plo_filename, double start_angle, double end_angle)
+void PlotLRMapSpecifiedAngles(struct site source, double altitude, char *plo_filename, double start_angle, double end_angle)
 {
 	/* This function performs a 360 degree sweep around the
 	   transmitter site (source location), and plots the
@@ -3105,11 +3229,11 @@ void SplatProcessor::PlotLRMapSpecifiedAngles(struct site source, double altitud
 	   WritePPMSS() functions are later invoked. */
 	   
 	// Adjust angles for the new reference (negative x-axis)
-	//start_angle = AdjustAngleForNegativeXAxis(start_angle);
-	//end_angle = AdjustAngleForNegativeXAxis(end_angle);
-	
-	 /* Continue with the existing logic using the adjusted angles */
-	printf("Adjusted Start Angle: %.2f, Adjusted End Angle: %.2f\n", start_angle, end_angle);
+   	//start_angle = AdjustAngleForNegativeXAxis(start_angle);
+    	//end_angle = AdjustAngleForNegativeXAxis(end_angle);
+    	
+    	 /* Continue with the existing logic using the adjusted angles */
+    	printf("Adjusted Start Angle: %.2f, Adjusted End Angle: %.2f\n", start_angle, end_angle);
 
 
 	int y, z, count;
@@ -3323,8 +3447,7 @@ fprintf(stdout, "\nSpecifiedAngles: Forth Quadrant: Processing angles from %.2f 
 	if (mask_value<30)
 		mask_value++;
 }
-
-void SplatProcessor::PlotLRMap(struct site source, double altitude, char *plo_filename)
+void PlotLRMap(struct site source, double altitude, char *plo_filename)
 {
 	/* This function performs a 360 degree sweep around the
 	   transmitter site (source location), and plots the
@@ -3514,7 +3637,7 @@ void SplatProcessor::PlotLRMap(struct site source, double altitude, char *plo_fi
 		mask_value++;
 }
 
-void SplatProcessor::LoadSignalColors(struct site xmtr)
+void LoadSignalColors(struct site xmtr)
 {
 	int x, y, ok, val[4];
 	char filename[255], string[80], *pointer=NULL;
@@ -3663,7 +3786,7 @@ void SplatProcessor::LoadSignalColors(struct site xmtr)
 	}
 }
 
-void SplatProcessor::LoadLossColors(struct site xmtr)
+void LoadLossColors(struct site xmtr)
 {
 	int x, y, ok, val[4];
 	char filename[255], string[80], *pointer=NULL;
@@ -3827,7 +3950,7 @@ void SplatProcessor::LoadLossColors(struct site xmtr)
 	}
 }
 
-void SplatProcessor::LoadDBMColors(struct site xmtr)
+void LoadDBMColors(struct site xmtr)
 {
 	int x, y, ok, val[4];
 	char filename[255], string[80], *pointer=NULL;
@@ -3998,7 +4121,7 @@ void SplatProcessor::LoadDBMColors(struct site xmtr)
 	}
 }
 
-void SplatProcessor::WritePPM(char *filename, unsigned char geo, unsigned char kml, unsigned char ngs, struct site *xmtr, unsigned char txsites)
+void WritePPM(char *filename, unsigned char geo, unsigned char kml, unsigned char ngs, struct site *xmtr, unsigned char txsites)
 {
 	/* This function generates a topographic map in Portable Pix Map
 	   (PPM) format based on logarithmically scaled topology data,
@@ -4090,21 +4213,21 @@ void SplatProcessor::WritePPM(char *filename, unsigned char geo, unsigned char k
 		fprintf(fd,"<kml xmlns=\"http://earth.google.com/kml/2.1\">\n");
 		fprintf(fd,"  <Folder>\n");
 		fprintf(fd,"   <name>%s</name>\n",splat_name);
-		fprintf(fd,"     <description>Line-of-Sight Contour</description>\n");
-		fprintf(fd,"       <GroundOverlay>\n");
-		fprintf(fd,"         <name>%s Line-of-Sight Contour</name>\n",splat_name);
-		fprintf(fd,"           <description>SPLAT! Coverage</description>\n");
-		fprintf(fd,"		<Icon>\n");
-		fprintf(fd,"              <href>%s</href>\n",mapfile);
+    		fprintf(fd,"     <description>Line-of-Sight Contour</description>\n");
+    		fprintf(fd,"       <GroundOverlay>\n");
+      		fprintf(fd,"         <name>%s Line-of-Sight Contour</name>\n",splat_name);
+      		fprintf(fd,"           <description>SPLAT! Coverage</description>\n");
+      		fprintf(fd,"		<Icon>\n");
+        	fprintf(fd,"              <href>%s</href>\n",mapfile);
 		fprintf(fd,"		</Icon>\n");
 		/* fprintf(fd,"            <opacity>128</opacity>\n"); */
 		fprintf(fd,"            <LatLonBox>\n");
 		fprintf(fd,"               <north>%.5f</north>\n",north);
 		fprintf(fd,"               <south>%.5f</south>\n",south);
 		fprintf(fd,"               <east>%.5f</east>\n",east);
-		fprintf(fd,"               <west>%.5f</west>\n",west);
-		fprintf(fd,"               <rotation>0.0</rotation>\n");
-		fprintf(fd,"            </LatLonBox>\n");
+        	fprintf(fd,"               <west>%.5f</west>\n",west);
+        	fprintf(fd,"               <rotation>0.0</rotation>\n");
+      		fprintf(fd,"            </LatLonBox>\n");
 		fprintf(fd,"       </GroundOverlay>\n");
 
 		for (x=0; x<txsites; x++)
@@ -4205,7 +4328,7 @@ void SplatProcessor::WritePPM(char *filename, unsigned char geo, unsigned char k
 					fprintf(fd,"%c%c%c",255,165,0);
 					break;
 
-					case 25:
+				 	case 25:
 					/* TX1 + TX2 + TX3: Dark Green */
 					fprintf(fd,"%c%c%c",0,100,0);
 					break;
@@ -4283,7 +4406,7 @@ void SplatProcessor::WritePPM(char *filename, unsigned char geo, unsigned char k
 	fflush(stdout);
 }
 
-void SplatProcessor::WritePPMLR(char *filename, unsigned char geo, unsigned char kml, unsigned char ngs, struct site *xmtr, unsigned char txsites)
+void WritePPMLR(char *filename, unsigned char geo, unsigned char kml, unsigned char ngs, struct site *xmtr, unsigned char txsites)
 {
 	/* This function generates a topographic map in Portable Pix Map
 	   (PPM) format based on the content of flags held in the mask[][] 
@@ -4399,21 +4522,21 @@ void SplatProcessor::WritePPMLR(char *filename, unsigned char geo, unsigned char
 		fprintf(fd,"<!-- Generated by %s Version %s -->\n",splat_name,splat_version);
 		fprintf(fd,"  <Folder>\n");
 		fprintf(fd,"   <name>%s</name>\n",splat_name);
-		fprintf(fd,"     <description>%s Transmitter Path Loss Overlay</description>\n",xmtr[0].name);
-		fprintf(fd,"       <GroundOverlay>\n");
-		fprintf(fd,"         <name>SPLAT! Path Loss Overlay</name>\n");
-		fprintf(fd,"           <description>SPLAT! Coverage</description>\n");
-		fprintf(fd,"		<Icon>\n");
-		fprintf(fd,"              <href>%s</href>\n",mapfile);
+    		fprintf(fd,"     <description>%s Transmitter Path Loss Overlay</description>\n",xmtr[0].name);
+    		fprintf(fd,"       <GroundOverlay>\n");
+      		fprintf(fd,"         <name>SPLAT! Path Loss Overlay</name>\n");
+      		fprintf(fd,"           <description>SPLAT! Coverage</description>\n");
+      		fprintf(fd,"		<Icon>\n");
+        	fprintf(fd,"              <href>%s</href>\n",mapfile);
 		fprintf(fd,"		</Icon>\n");
 		/* fprintf(fd,"            <opacity>128</opacity>\n"); */
 		fprintf(fd,"            <LatLonBox>\n");
 		fprintf(fd,"               <north>%.5f</north>\n",north);
 		fprintf(fd,"               <south>%.5f</south>\n",south);
 		fprintf(fd,"               <east>%.5f</east>\n",east);
-		fprintf(fd,"               <west>%.5f</west>\n",west);
-		fprintf(fd,"               <rotation>0.0</rotation>\n");
-		fprintf(fd,"            </LatLonBox>\n");
+        	fprintf(fd,"               <west>%.5f</west>\n",west);
+        	fprintf(fd,"               <rotation>0.0</rotation>\n");
+      		fprintf(fd,"            </LatLonBox>\n");
 		fprintf(fd,"       </GroundOverlay>\n");
 		fprintf(fd,"       <ScreenOverlay>\n");
 		fprintf(fd,"          <name>Color Key</name>\n");
@@ -4535,16 +4658,16 @@ void SplatProcessor::WritePPMLR(char *filename, unsigned char geo, unsigned char
 					}
 				}
 
-				if (mask&2)
+	 			if (mask&2)
 				{
 					/* Text Labels: Red or otherwise */
 
 					if (red>=180 && green<=75 && blue<=75 && loss!=0)
-						fprintf(fd,"%c%c%c",255^red,255^green,255^blue);
-					else
-						fprintf(fd,"%c%c%c",255,0,0);
+                                                fprintf(fd,"%c%c%c",255^red,255^green,255^blue);
+                                        else
+                                                fprintf(fd,"%c%c%c",255,0,0);
 
-					cityorcounty=1;
+                                        cityorcounty=1;
 				}
 
 				else if (mask&4)
@@ -4636,14 +4759,14 @@ void SplatProcessor::WritePPMLR(char *filename, unsigned char geo, unsigned char
 
 				units=level;
 
-				if (y0>=8 && y0<=23)
+		       		if (y0>=8 && y0<=23)
 				{  
 					if (hundreds>0)
 					{
-						if (x>=11 && x<=18)     
-							if (fontdata[16*(hundreds+'0')+(y0-8)]&(128>>(x-11)))
+				  		if (x>=11 && x<=18)     
+				      			if (fontdata[16*(hundreds+'0')+(y0-8)]&(128>>(x-11)))
 								indx=255; 
-					}
+			    		}
 
 					if (tens>0 || hundreds>0)
 					{
@@ -4663,7 +4786,7 @@ void SplatProcessor::WritePPMLR(char *filename, unsigned char geo, unsigned char
 					if (x>=50 && x<=57)
 						if (fontdata[16*('B')+(y0-8)]&(128>>(x-50)))
 							indx=255;
-				}
+		       		}
 
 				if (indx>region.levels)
 					fprintf(fd,"%c%c%c",0,0,0);
@@ -4717,10 +4840,10 @@ void SplatProcessor::WritePPMLR(char *filename, unsigned char geo, unsigned char
 				{  
 					if (hundreds>0)
 					{
-						if (x>=11 && x<=18)     
-							if (fontdata[16*(hundreds+'0')+((y0%30)-8)]&(128>>(x-11)))
+				  		if (x>=11 && x<=18)     
+				      			if (fontdata[16*(hundreds+'0')+((y0%30)-8)]&(128>>(x-11)))
 								indx=255; 
-					}
+			    		}
 
 					if (tens>0 || hundreds>0)
 					{
@@ -4740,7 +4863,7 @@ void SplatProcessor::WritePPMLR(char *filename, unsigned char geo, unsigned char
 					if (x>=50 && x<=57)
 						if (fontdata[16*('B')+((y0%30)-8)]&(128>>(x-50)))
 							indx=255;
-				}
+		       		}
 
 				if (indx>region.levels)
 					fprintf(fd,"%c%c%c",0,0,0);
@@ -4762,15 +4885,15 @@ void SplatProcessor::WritePPMLR(char *filename, unsigned char geo, unsigned char
 	fflush(stdout);
 }
 
+
 // Function to write image info to a text file
-void SplatProcessor::write_image_info_to_txt(const std::string &filename, double min_x, double min_y, double max_x, double max_y, int image_width, int image_height) 
-{
+void write_image_info_to_txt(const std::string &filename, double min_x, double min_y, double max_x, double max_y, int image_width, int image_height) {
     // Open the text file for writing
     std::ofstream outfile(filename);
 
     if (!outfile.is_open()) {
-	std::cerr << "Error opening file for writing: " << filename << std::endl;
-	return;
+        std::cerr << "Error opening file for writing: " << filename << std::endl;
+        return;
     }
 
     // Write the image information to the text file
@@ -4790,7 +4913,7 @@ void SplatProcessor::write_image_info_to_txt(const std::string &filename, double
     std::cout << "Image information written to " << filename << std::endl;
 }
 
-void SplatProcessor::WritePPMSS(char *filename, unsigned char geo, unsigned char kml, unsigned char ngs, struct site *xmtr, unsigned char txsites)
+void WritePPMSS(char *filename, unsigned char geo, unsigned char kml, unsigned char ngs, struct site *xmtr, unsigned char txsites)
 {
 	/* This function generates a topographic map in Portable Pix Map
 	   (PPM) format based on the signal strength values held in the
@@ -4865,19 +4988,19 @@ void SplatProcessor::WritePPMSS(char *filename, unsigned char geo, unsigned char
 	ckfile[x+6]='m';
 	ckfile[x+7]=0;
 
-	char pngfile[255];
-	char txtfile[255];
-	// Generate the .png filename
-	strcpy(pngfile, mapfile);
-	// change extension of pngfile from .ppm to .png
-	strcpy(pngfile + strlen(pngfile) - 4, ".png");
+        char pngfile[255];
+        char txtfile[255];
+        // Generate the .png filename
+        strcpy(pngfile, mapfile);
+        // change extension of pngfile from .ppm to .png
+        strcpy(pngfile + strlen(pngfile) - 4, ".png");
 
-	//change extension of mapfile from .ppm to .png 
-	strcpy(mapfile + strlen(mapfile) - 4, ".png");
+        //change extension of mapfile from .ppm to .png 
+        strcpy(mapfile + strlen(mapfile) - 4, ".png");
 
-	// Generate the .txt filename
-	strcpy(txtfile, pngfile);
-	strcpy(txtfile + strlen(txtfile) - 4, ".txt");
+        // Generate the .txt filename
+        strcpy(txtfile, pngfile);
+        strcpy(txtfile + strlen(txtfile) - 4, ".txt");
 
 	minwest=((double)min_west)+dpp;
 
@@ -4919,12 +5042,12 @@ void SplatProcessor::WritePPMSS(char *filename, unsigned char geo, unsigned char
 		fprintf(fd,"<!-- Generated by %s Version %s -->\n",splat_name,splat_version);
 		fprintf(fd,"  <Folder>\n");
 		fprintf(fd,"   <name>%s</name>\n",splat_name);
-		fprintf(fd,"     <description>%s Transmitter Contours</description>\n",xmtr[0].name);
-		fprintf(fd,"       <GroundOverlay>\n");
-		fprintf(fd,"         <name>SPLAT! Signal Strength Contours</name>\n");
-		fprintf(fd,"           <description>SPLAT! Coverage</description>\n");
-		fprintf(fd,"		<Icon>\n");
-		//fprintf(fd,"              <href>%s</href>\n",mapfile);
+    		fprintf(fd,"     <description>%s Transmitter Contours</description>\n",xmtr[0].name);
+    		fprintf(fd,"       <GroundOverlay>\n");
+      		fprintf(fd,"         <name>SPLAT! Signal Strength Contours</name>\n");
+      		fprintf(fd,"           <description>SPLAT! Coverage</description>\n");
+      		fprintf(fd,"		<Icon>\n");
+        	//fprintf(fd,"              <href>%s</href>\n",mapfile);
 		fprintf(fd, "              <href>%s</href>\n", pngfile);
 		fprintf(fd,"		</Icon>\n");
 		/* fprintf(fd,"            <opacity>128</opacity>\n"); */
@@ -4932,9 +5055,9 @@ void SplatProcessor::WritePPMSS(char *filename, unsigned char geo, unsigned char
 		fprintf(fd,"               <north>%.5f</north>\n",north);
 		fprintf(fd,"               <south>%.5f</south>\n",south);
 		fprintf(fd,"               <east>%.5f</east>\n",east);
-		fprintf(fd,"               <west>%.5f</west>\n",west);
-		fprintf(fd,"               <rotation>0.0</rotation>\n");
-		fprintf(fd,"            </LatLonBox>\n");
+        	fprintf(fd,"               <west>%.5f</west>\n",west);
+        	fprintf(fd,"               <rotation>0.0</rotation>\n");
+      		fprintf(fd,"            </LatLonBox>\n");
 		fprintf(fd,"       </GroundOverlay>\n");
 		fprintf(fd,"       <ScreenOverlay>\n");
 		fprintf(fd,"          <name>Color Key</name>\n");
@@ -5056,7 +5179,7 @@ void SplatProcessor::WritePPMSS(char *filename, unsigned char geo, unsigned char
 					}
 				}
 
-				if (mask&2) 
+	 			if (mask&2) 
 				{
 					/* Text Labels: Red or otherwise */
 
@@ -5165,14 +5288,14 @@ void SplatProcessor::WritePPMSS(char *filename, unsigned char geo, unsigned char
 
 				units=level;
 
-				if (y0>=8 && y0<=23)
+		       		if (y0>=8 && y0<=23)
 				{  
 					if (hundreds>0)
 					{
-						if (x>=5 && x<=12)     
-							if (fontdata[16*(hundreds+'0')+(y0-8)]&(128>>(x-5)))
+				  		if (x>=5 && x<=12)     
+				      			if (fontdata[16*(hundreds+'0')+(y0-8)]&(128>>(x-5)))
 								indx=255; 
-					}
+			    		}
 
 					if (tens>0 || hundreds>0)
 					{
@@ -5208,7 +5331,7 @@ void SplatProcessor::WritePPMSS(char *filename, unsigned char geo, unsigned char
 					if (x>=76 && x<=83)
 						if (fontdata[16*('m')+(y0-8)]&(128>>(x-76)))
 							indx=255;
-				}
+		       		}
 
 				if (indx>region.levels)
 					fprintf(fd,"%c%c%c",0,0,0);
@@ -5261,10 +5384,10 @@ void SplatProcessor::WritePPMSS(char *filename, unsigned char geo, unsigned char
 				{  
 					if (hundreds>0)
 					{
-						if (x>=5 && x<=12)     
-							if (fontdata[16*(hundreds+'0')+((y0%30)-8)]&(128>>(x-5)))
+				  		if (x>=5 && x<=12)     
+				      			if (fontdata[16*(hundreds+'0')+((y0%30)-8)]&(128>>(x-5)))
 								indx=255; 
-					}
+			    		}
 
 					if (tens>0 || hundreds>0)
 					{
@@ -5300,7 +5423,7 @@ void SplatProcessor::WritePPMSS(char *filename, unsigned char geo, unsigned char
 					if (x>=76 && x<=83)
 						if (fontdata[16*('m')+((y0%30)-8)]&(128>>(x-76)))
 							indx=255;
-				}
+		       		}
 
 				if (indx>region.levels)
 					fprintf(fd,"%c%c%c",0,0,0);
@@ -5335,7 +5458,8 @@ void SplatProcessor::WritePPMSS(char *filename, unsigned char geo, unsigned char
 	fflush(stdout);
 }
 
-void SplatProcessor::WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned char ngs, unsigned char transparent_mode, struct site *xmtr, unsigned char txsites)
+
+void WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned char ngs, unsigned char transparent_mode, struct site *xmtr, unsigned char txsites)
 {
 	/* This function generates a topographic map in Portable Pix Map
 	   (PPM) format based on the signal power level values held in the
@@ -5473,12 +5597,12 @@ void SplatProcessor::WritePPMDBM(char *filename, unsigned char geo, unsigned cha
 		fprintf(fd,"<!-- Generated by %s Version %s -->\n",splat_name,splat_version);
 		fprintf(fd,"  <Folder>\n");
 		fprintf(fd,"   <name>%s</name>\n",splat_name);
-		fprintf(fd,"     <description>%s Transmitter Contours</description>\n",xmtr[0].name);
-		fprintf(fd,"       <GroundOverlay>\n");
-		fprintf(fd,"         <name>SPLAT! Signal Power Level Contours</name>\n");
-		fprintf(fd,"           <description>SPLAT! Coverage</description>\n");
-		fprintf(fd,"		<Icon>\n");
-		/*fprintf(fd,"              <href>%s</href>\n",mapfile);*/
+    		fprintf(fd,"     <description>%s Transmitter Contours</description>\n",xmtr[0].name);
+    		fprintf(fd,"       <GroundOverlay>\n");
+      		fprintf(fd,"         <name>SPLAT! Signal Power Level Contours</name>\n");
+      		fprintf(fd,"           <description>SPLAT! Coverage</description>\n");
+      		fprintf(fd,"		<Icon>\n");
+        	/*fprintf(fd,"              <href>%s</href>\n",mapfile);*/
 		fprintf(fd, "              <href>%s</href>\n", pngfile);
 		fprintf(fd,"		</Icon>\n");
 		/*fprintf(fd,"            <opacity>128</opacity>\n");*/
@@ -5486,9 +5610,9 @@ void SplatProcessor::WritePPMDBM(char *filename, unsigned char geo, unsigned cha
 		fprintf(fd,"               <north>%.5f</north>\n",north);
 		fprintf(fd,"               <south>%.5f</south>\n",south);
 		fprintf(fd,"               <east>%.5f</east>\n",east);
-		fprintf(fd,"               <west>%.5f</west>\n",west);
-		fprintf(fd,"               <rotation>0.0</rotation>\n");
-		fprintf(fd,"            </LatLonBox>\n");
+        	fprintf(fd,"               <west>%.5f</west>\n",west);
+        	fprintf(fd,"               <rotation>0.0</rotation>\n");
+      		fprintf(fd,"            </LatLonBox>\n");
 		fprintf(fd,"       </GroundOverlay>\n");
 		fprintf(fd,"       <ScreenOverlay>\n");
 		fprintf(fd,"          <name>Color Key</name>\n");
@@ -5610,7 +5734,7 @@ void SplatProcessor::WritePPMDBM(char *filename, unsigned char geo, unsigned cha
 					}
 				}
 
-				if (mask&2) 
+	 			if (mask&2) 
 				{
 					/* Text Labels: Red or otherwise */
 
@@ -5740,7 +5864,7 @@ void SplatProcessor::WritePPMDBM(char *filename, unsigned char geo, unsigned cha
 
 				units=level;
 
-				if (y0>=8 && y0<=23)
+		       		if (y0>=8 && y0<=23)
 				{
 					if (hundreds>0)
 					{
@@ -5758,10 +5882,10 @@ void SplatProcessor::WritePPMDBM(char *filename, unsigned char geo, unsigned cha
 									indx=255;
 						}
 
-						if (x>=13 && x<=20)     
-							if (fontdata[16*(hundreds+'0')+(y0-8)]&(128>>(x-13)))
+				  		if (x>=13 && x<=20)     
+				      			if (fontdata[16*(hundreds+'0')+(y0-8)]&(128>>(x-13)))
 								indx=255; 
-					}
+			    		}
 
 					if (tens>0 || hundreds>0)
 					{
@@ -5819,7 +5943,7 @@ void SplatProcessor::WritePPMDBM(char *filename, unsigned char geo, unsigned cha
 					if (x>=53 && x<=60)
 						if (fontdata[16*('m')+(y0-8)]&(128>>(x-53)))
 							indx=255;
-				}
+		       		}
 
 				if (indx>region.levels)
 					fprintf(fd,"%c%c%c",0,0,0);
@@ -5889,10 +6013,10 @@ void SplatProcessor::WritePPMDBM(char *filename, unsigned char geo, unsigned cha
 									indx=255;
 						}
 
-						if (x>=13 && x<=20)     
-							if (fontdata[16*(hundreds+'0')+((y0%30)-8)]&(128>>(x-13)))
+				  		if (x>=13 && x<=20)     
+				      			if (fontdata[16*(hundreds+'0')+((y0%30)-8)]&(128>>(x-13)))
 								indx=255; 
-					}
+			    		}
 
 					if (tens>0 || hundreds>0)
 					{
@@ -5988,7 +6112,7 @@ void SplatProcessor::WritePPMDBM(char *filename, unsigned char geo, unsigned cha
 }
 
 
-void SplatProcessor::GraphTerrain(struct site source, struct site destination, char *name)
+void GraphTerrain(struct site source, struct site destination, char *name)
 {
 	/* This function invokes gnuplot to generate an appropriate
 	   output file indicating the terrain profile between the source
@@ -6149,7 +6273,7 @@ void SplatProcessor::GraphTerrain(struct site source, struct site destination, c
 		fprintf(stderr,"\n*** ERROR: Error occurred invoking gnuplot!\n");
 }
 
-void SplatProcessor::GraphElevation(struct site source, struct site destination, char *name)
+void GraphElevation(struct site source, struct site destination, char *name)
 {
 	/* This function invokes gnuplot to generate an appropriate
 	   output file indicating the terrain elevation profile between
@@ -6162,7 +6286,7 @@ void SplatProcessor::GraphElevation(struct site source, struct site destination,
 	int	x, y, z;
 	char	basename[255], term[30], ext[15];
 	double	angle, clutter_angle=0.0, refangle, maxangle=-90.0,
-		minangle=90.0, distance;
+	       	minangle=90.0, distance;
 	struct	site remote, remote2;
 	FILE	*fd=NULL, *fd1=NULL, *fd2=NULL;
 
@@ -6351,7 +6475,7 @@ void SplatProcessor::GraphElevation(struct site source, struct site destination,
 		fprintf(stderr,"\n*** ERROR: Error occurred invoking gnuplot!\n");
 }
 
-void SplatProcessor::GraphHeight(struct site source, struct site destination, char *name, unsigned char fresnel_plot, unsigned char normalized)
+void GraphHeight(struct site source, struct site destination, char *name, unsigned char fresnel_plot, unsigned char normalized)
 {
 	/* This function invokes gnuplot to generate an appropriate
 	   output file indicating the terrain height profile between
@@ -6421,7 +6545,7 @@ void SplatProcessor::GraphHeight(struct site source, struct site destination, ch
 			terrain+=destination.alt;  /* RX antenna spike */
 
 		a=terrain+earthradius;
-		cangle=5280.0*Distance(destination,remote)/earthradius;
+ 		cangle=5280.0*Distance(destination,remote)/earthradius;
 		c=b*sin(refangle*DEG2RAD+HALFPI)/sin(HALFPI-refangle*DEG2RAD-cangle);
 
 		height=a-c;
@@ -6732,7 +6856,7 @@ void SplatProcessor::GraphHeight(struct site source, struct site destination, ch
 		fprintf(stderr,"\n*** ERROR: Error occurred invoking gnuplot!\n");
 }
 
-void SplatProcessor::ObstructionAnalysis(struct site xmtr, struct site rcvr, double f, FILE *outfile)
+void ObstructionAnalysis(struct site xmtr, struct site rcvr, double f, FILE *outfile)
 {
 	/* Perform an obstruction analysis along the
 	   path between receiver and transmitter. */
@@ -6895,7 +7019,7 @@ void SplatProcessor::ObstructionAnalysis(struct site xmtr, struct site rcvr, dou
 		}
 
 		else
-		    snprintf(string_f1,150,"\nThe first Fresnel zone is clear.\n");
+    		    snprintf(string_f1,150,"\nThe first Fresnel zone is clear.\n");
 	}
 
 	fprintf(outfile,"%s",string);
@@ -6907,13 +7031,13 @@ void SplatProcessor::ObstructionAnalysis(struct site xmtr, struct site rcvr, dou
 	}
 }
 
-void SplatProcessor::PathReport(struct site source, struct site destination, char *name, char graph_it)
+void PathReport(struct site source, struct site destination, char *name, char graph_it)
 {
 	/* This function writes a SPLAT! Path Report (name.txt) to
 	   the filesystem.  If (graph_it == 1), then gnuplot is invoked
 	   to generate an appropriate output file indicating the ITM
 	   model loss between the source and destination locations.
-	   "filename" is the name assigned to the output file generated
+    	   "filename" is the name assigned to the output file generated
 	   by gnuplot.  The filename extension is used to set gnuplot's
 	   terminal setting and output file type.  If no extension is
 	   found, .png is assumed. */
@@ -7232,7 +7356,7 @@ void SplatProcessor::PathReport(struct site source, struct site destination, cha
 			{
 				/* If an antenna elevation pattern is available, the
 				   following code determines the elevation angle to
-				   the first obstruction along the path. */
+			   	   the first obstruction along the path. */
 
 				for (x=2, block=0; x<y && block==0; x++)
 				{
@@ -7250,8 +7374,8 @@ void SplatProcessor::PathReport(struct site source, struct site destination, cha
 					   the cosines of these angles rather than
 					   the angles themselves, the sense of the
 					   following "if" statement is reversed from
-					   what it would be if the angles themselves
-					   were compared. */
+				   	   what it would be if the angles themselves
+				   	   were compared. */
 
 					if (cos_xmtr_angle>=cos_test_angle)
 						block=1;
@@ -7263,9 +7387,9 @@ void SplatProcessor::PathReport(struct site source, struct site destination, cha
 
 			/* Determine path loss for each point along
 			   the path using ITWOM's point_to_point mode
-			   starting at x=2 (number_of_points = 1), the
-			   shortest distance terrain can play a role in
-			   path loss. */
+		  	   starting at x=2 (number_of_points = 1), the
+		  	   shortest distance terrain can play a role in
+		  	   path loss. */
 
 			elev[0]=y-1;	/* (number of points - 1) */
 
@@ -7275,13 +7399,13 @@ void SplatProcessor::PathReport(struct site source, struct site destination, cha
 
 			if (olditm)
 				point_to_point_ITM(elev,source.alt*METERS_PER_FOOT, 
-				destination.alt*METERS_PER_FOOT, LR.eps_dielect,
+  		 		destination.alt*METERS_PER_FOOT, LR.eps_dielect,
 				LR.sgm_conductivity, LR.eno_ns_surfref, LR.frq_mhz,
 				LR.radio_climate, LR.pol, LR.conf, LR.rel, loss,
 				strmode, errnum);
 			else
 				point_to_point(elev,source.alt*METERS_PER_FOOT, 
-				destination.alt*METERS_PER_FOOT, LR.eps_dielect,
+  		 		destination.alt*METERS_PER_FOOT, LR.eps_dielect,
 				LR.sgm_conductivity, LR.eno_ns_surfref, LR.frq_mhz,
 				LR.radio_climate, LR.pol, LR.conf, LR.rel, loss,
 				strmode, errnum);
@@ -7547,23 +7671,22 @@ void SplatProcessor::PathReport(struct site source, struct site destination, cha
 }
 
 // Function to extract the directory path up to the PPM file
-void SplatProcessor::extractSplatPath(const char *ppmFilePath, char *outputPath, size_t outputPathSize) 
-{
+void extractSplatPath(const char *ppmFilePath, char *outputPath, size_t outputPathSize) {
     const char *lastSlash = strrchr(ppmFilePath, '/'); // Find the last occurrence of '/'
     if (lastSlash != NULL) {
-	size_t length = lastSlash - ppmFilePath + 1; // Include the '/' at the end
-	if (length < outputPathSize) {
-	    strncpy(outputPath, ppmFilePath, length);
-	    outputPath[length] = '\0'; // Null-terminate the string
-	} else {
-	    fprintf(stderr, "Error: Output path buffer is too small.\n");
-	}
+        size_t length = lastSlash - ppmFilePath + 1; // Include the '/' at the end
+        if (length < outputPathSize) {
+            strncpy(outputPath, ppmFilePath, length);
+            outputPath[length] = '\0'; // Null-terminate the string
+        } else {
+            fprintf(stderr, "Error: Output path buffer is too small.\n");
+        }
     } else {
-	fprintf(stderr, "Error: Invalid PPM file path format.\n");
+        fprintf(stderr, "Error: Invalid PPM file path format.\n");
     }
 }
 
-void SplatProcessor::SiteReport(const char *ppmFilePath, struct site xmtr)
+void SiteReport(const char *ppmFilePath, struct site xmtr)
 {
 	char outputPath[256];    // Buffer to hold the directory path
 	char reportName[256];    // Buffer for the full report file path
@@ -7659,7 +7782,7 @@ void SplatProcessor::SiteReport(const char *ppmFilePath, struct site xmtr)
 	fprintf(stdout,"\nSite analysis report written to: \"%s\"\n",reportName);
 }
 
-void SplatProcessor::LoadTopoData(int max_lon, int min_lon, int max_lat, int min_lat)
+void LoadTopoData(int max_lon, int min_lon, int max_lat, int min_lat)
 {
 	/* This function loads the SDF files required
 	   to cover the limits of the region specified. */ 
@@ -7727,7 +7850,7 @@ void SplatProcessor::LoadTopoData(int max_lon, int min_lon, int max_lat, int min
 	}
 }
 
-int SplatProcessor::LoadANO(char *filename)
+int LoadANO(char *filename)
 {
 	/* This function reads a SPLAT! alphanumeric output 
 	   file (-ani option) for analysis and/or map generation. */
@@ -7841,7 +7964,7 @@ int SplatProcessor::LoadANO(char *filename)
 	return error;
 }
 
-void SplatProcessor::WriteKML(struct site source, struct site destination)
+void WriteKML(struct site source, struct site destination)
 {
 	int	x, y;
 	char	block, report_name[80];
@@ -8050,81 +8173,9 @@ void SplatProcessor::WriteKML(struct site source, struct site destination)
 	fflush(stdout);
 }
 
-// START OF INCAPSULATION
-void SplatProcessor::printHelp(const char* splat_name, const char* splat_version, int &y) 
+int main(int argc, char *argv[])
 {
-	fprintf(stdout,"\n\t\t --==[ %s v%s Available Options... ]==--\n\n",splat_name, splat_version);
-
-	fprintf(stdout,"       -t txsite(s).qth (max of 4 with -c, max of 30 with -L)\n");
-	fprintf(stdout,"       -r rxsite.qth\n");
-	fprintf(stdout,"       -c plot LOS coverage of TX(s) with an RX antenna at X feet/meters AGL\n");
-	fprintf(stdout,"       -L plot path loss map of TX based on an RX at X feet/meters AGL\n");
-	fprintf(stdout,"       -LA plot path loss map of TX based on an RX at X feet/meters AGL with specified coverage angles\n");
-	fprintf(stdout,"       -s filename(s) of city/site file(s) to import (5 max)\n");
-	fprintf(stdout,"       -b filename(s) of cartographic boundary file(s) to import (5 max)\n");
-	fprintf(stdout,"       -p filename of terrain profile graph to plot\n");
-	fprintf(stdout,"       -e filename of terrain elevation graph to plot\n");
-	fprintf(stdout,"       -h filename of terrain height graph to plot\n");
-	fprintf(stdout,"       -H filename of normalized terrain height graph to plot\n");
-	fprintf(stdout,"       -l filename of path loss graph to plot\n");
-	fprintf(stdout,"       -o filename of topographic map to generate (.ppm)\n");
-	fprintf(stdout,"       -u filename of user-defined terrain file to import\n");
-	fprintf(stdout,"       -d sdf file directory path (overrides path in ~/.splat_path file)\n");
-	fprintf(stdout,"       -m earth radius multiplier\n");
-	fprintf(stdout,"       -n do not plot LOS paths in .ppm maps\n");
-	fprintf(stdout,"       -N do not produce unnecessary site or obstruction reports\n");	
-	fprintf(stdout,"       -f frequency for Fresnel zone calculation (MHz)\n");
-	fprintf(stdout,"       -R modify default range for -c or -L (miles/kilometers)\n");
-	fprintf(stdout,"      -sc display smooth rather than quantized contour levels\n");
-	fprintf(stdout,"      -db threshold beyond which contours will not be displayed\n");
-	fprintf(stdout,"      -nf do not plot Fresnel zones in height plots\n");
-	fprintf(stdout,"      -fz Fresnel zone clearance percentage (default = 60)\n");
-	fprintf(stdout,"      -gc ground clutter height (feet/meters)\n");
-	fprintf(stdout,"     -ngs display greyscale topography as white in .ppm files\n"); 
-	fprintf(stdout,"     -trans display transparent topography in .ppm files\n"); 	
-	fprintf(stdout,"     -erp override ERP in .lrp file (Watts)\n");
-	fprintf(stdout,"     -ano name of alphanumeric output file\n");
-	fprintf(stdout,"     -ani name of alphanumeric input file\n");
-	fprintf(stdout,"     -udt name of user defined terrain input file\n");
-	fprintf(stdout,"     -kml generate Google Earth (.kml) compatible output\n");
-	fprintf(stdout,"     -geo generate an Xastir .geo georeference file (with .ppm output)\n");
-	fprintf(stdout,"     -dbm plot signal power level contours rather than field strength\n");
-	fprintf(stdout,"     -log copy command line string to this output file\n");
-	fprintf(stdout,"   -gpsav preserve gnuplot temporary working files after SPLAT! execution\n");
-	fprintf(stdout,"  -metric employ metric rather than imperial units for all user I/O\n");
-	fprintf(stdout,"  -olditm invoke Longley-Rice rather than the default ITWOM model\n\n");
-	fprintf(stdout,"If that flew by too fast, consider piping the output through 'less':\n");
-
-	if (HD_MODE==0)
-		fprintf(stdout,"\n\tsplat | less\n\n");
-	else
-		fprintf(stdout,"\n\tsplat-hd | less\n\n");
-
-	fprintf(stdout,"Type 'man splat', or see the documentation for more details.\n\n");
-
-	y=(int)sqrt((int)MAXPAGES);
-
-	fprintf(stdout,"This compilation of %s supports analysis over a region of %d square\n",splat_name,y);
-
-	if (y==1)
-
-		fprintf(stdout,"degree");
-	else
-		fprintf(stdout,"degrees");
-
-	fprintf(stdout," of terrain, and computes signal levels using ITWOM Version %.1f.\n\n",ITWOMVersion());
-	fflush(stdout);
-}
-
-void SplatProcessor::prepareHeader(const char* splat_name, const char* splat_version, char* header) 
-{
-	sprintf(header, "\n\t\t--==[ Welcome To %s v%s ]==--\n\n", splat_name, splat_version);
-}
-
-void SplatProcessor::parseArguments(int argc, char* argv[], char* header, int &y) 
-{
-	
-	int		x, z=0, min_lat, min_lon, max_lat, max_lon,
+	int		x, y, z=0, min_lat, min_lon, max_lat, max_lon,
 			rxlat, rxlon, txlat, txlon, west_min, west_max,
 			north_min, north_max;
 
@@ -8135,7 +8186,7 @@ void SplatProcessor::parseArguments(int argc, char* argv[], char* header, int &y
 			area_mode=0, max_txsites, ngs=0, nolospath=0,
 			nositereports=0, fresnel_plot=1, command_line_log=0;
  
-	char		mapfile[255], city_file[5][255], 
+	char		mapfile[255], header[80], city_file[5][255], 
 			elevation_file[255], height_file[255], 
 			longley_file[255], terrain_file[255],
 			string[255], rxfile[255], *env=NULL,
@@ -8151,13 +8202,90 @@ void SplatProcessor::parseArguments(int argc, char* argv[], char* header, int &y
 
 	FILE		*fd;
 
-	
+	strncpy(splat_version,"1.4.3\0",6);
+
+	if (HD_MODE==1)
+		strncpy(splat_name,"SPLAT! HD\0",10);
+	else
+		strncpy(splat_name,"SPLAT!\0",7);
+
+	strncpy(dashes,"---------------------------------------------------------------------------\0",76);
+
+	if (argc==1)
+	{
+		fprintf(stdout,"\n\t\t --==[ %s v%s Available Options... ]==--\n\n",splat_name, splat_version);
+
+		fprintf(stdout,"       -t txsite(s).qth (max of 4 with -c, max of 30 with -L)\n");
+		fprintf(stdout,"       -r rxsite.qth\n");
+		fprintf(stdout,"       -c plot LOS coverage of TX(s) with an RX antenna at X feet/meters AGL\n");
+		fprintf(stdout,"       -L plot path loss map of TX based on an RX at X feet/meters AGL\n");
+		fprintf(stdout,"       -LA plot path loss map of TX based on an RX at X feet/meters AGL with specified coverage angles\n");
+		fprintf(stdout,"       -s filename(s) of city/site file(s) to import (5 max)\n");
+		fprintf(stdout,"       -b filename(s) of cartographic boundary file(s) to import (5 max)\n");
+		fprintf(stdout,"       -p filename of terrain profile graph to plot\n");
+		fprintf(stdout,"       -e filename of terrain elevation graph to plot\n");
+		fprintf(stdout,"       -h filename of terrain height graph to plot\n");
+		fprintf(stdout,"       -H filename of normalized terrain height graph to plot\n");
+		fprintf(stdout,"       -l filename of path loss graph to plot\n");
+		fprintf(stdout,"       -o filename of topographic map to generate (.ppm)\n");
+		fprintf(stdout,"       -u filename of user-defined terrain file to import\n");
+		fprintf(stdout,"       -d sdf file directory path (overrides path in ~/.splat_path file)\n");
+		fprintf(stdout,"       -m earth radius multiplier\n");
+		fprintf(stdout,"       -n do not plot LOS paths in .ppm maps\n");
+		fprintf(stdout,"       -N do not produce unnecessary site or obstruction reports\n");	
+		fprintf(stdout,"       -f frequency for Fresnel zone calculation (MHz)\n");
+		fprintf(stdout,"       -R modify default range for -c or -L (miles/kilometers)\n");
+		fprintf(stdout,"      -sc display smooth rather than quantized contour levels\n");
+		fprintf(stdout,"      -db threshold beyond which contours will not be displayed\n");
+		fprintf(stdout,"      -nf do not plot Fresnel zones in height plots\n");
+		fprintf(stdout,"      -fz Fresnel zone clearance percentage (default = 60)\n");
+		fprintf(stdout,"      -gc ground clutter height (feet/meters)\n");
+		fprintf(stdout,"     -ngs display greyscale topography as white in .ppm files\n"); 
+		fprintf(stdout,"     -trans display transparent topography in .ppm files\n"); 	
+		fprintf(stdout,"     -erp override ERP in .lrp file (Watts)\n");
+		fprintf(stdout,"     -ano name of alphanumeric output file\n");
+		fprintf(stdout,"     -ani name of alphanumeric input file\n");
+		fprintf(stdout,"     -udt name of user defined terrain input file\n");
+		fprintf(stdout,"     -kml generate Google Earth (.kml) compatible output\n");
+		fprintf(stdout,"     -geo generate an Xastir .geo georeference file (with .ppm output)\n");
+		fprintf(stdout,"     -dbm plot signal power level contours rather than field strength\n");
+		fprintf(stdout,"     -log copy command line string to this output file\n");
+		fprintf(stdout,"   -gpsav preserve gnuplot temporary working files after SPLAT! execution\n");
+		fprintf(stdout,"  -metric employ metric rather than imperial units for all user I/O\n");
+		fprintf(stdout,"  -olditm invoke Longley-Rice rather than the default ITWOM model\n\n");
+		fprintf(stdout,"If that flew by too fast, consider piping the output through 'less':\n");
+
+		if (HD_MODE==0)
+			fprintf(stdout,"\n\tsplat | less\n\n");
+		else
+			fprintf(stdout,"\n\tsplat-hd | less\n\n");
+
+		fprintf(stdout,"Type 'man splat', or see the documentation for more details.\n\n");
+
+		y=(int)sqrt((int)MAXPAGES);
+
+		fprintf(stdout,"This compilation of %s supports analysis over a region of %d square\n",splat_name,y);
+
+		if (y==1)
+
+			fprintf(stdout,"degree");
+		else
+			fprintf(stdout,"degrees");
+
+		fprintf(stdout," of terrain, and computes signal levels using ITWOM Version %.1f.\n\n",ITWOMVersion());
+		fflush(stdout);
+
+		return 1;
+	}
+
+	y=argc-1;
+
 	olditm=0;
 	kml=0;
 	geo=0;
 	dbm=0;
 	gpsav=0;
-	metric=0; // CHECK
+	metric=0;
 	rxfile[0]=0;
 	txfile[0]=0;
 	string[0]=0;
@@ -8171,7 +8299,7 @@ void SplatProcessor::parseArguments(int argc, char* argv[], char* header, int &y
 	udt_file[0]=0;
 	path.length=0;
 	max_txsites=30;
-	fzone_clearance=0.6; // CHECK
+	fzone_clearance=0.6;
 	contour_threshold=0;
 	rx_site.lat=91.0;
 	rx_site.lon=361.0;
@@ -8179,13 +8307,15 @@ void SplatProcessor::parseArguments(int argc, char* argv[], char* header, int &y
 	ano_filename[0]=0;
 	ani_filename[0]=0;
 	smooth_contours=0;
-	earthradius=EARTHRADIUS; 
+	earthradius=EARTHRADIUS;
 
 	ippd=IPPD;		/* pixels per degree (integer) */
 	ppd=(double)ippd;	/* pixels per degree (double)  */
 	dpp=1.0/ppd;		/* degrees per pixel */
 	mpi=ippd-1;		/* maximum pixel index per degree */
-	
+
+	sprintf(header,"\n\t\t--==[ Welcome To %s v%s ]==--\n\n", splat_name, splat_version);
+
 	for (x=0; x<4; x++)
 	{
 		tx_site[x].lat=91.0;
@@ -8465,22 +8595,22 @@ void SplatProcessor::parseArguments(int argc, char* argv[], char* header, int &y
 
 						sscanf(argv[z], "%lf", &end_angle);
 
-						//	// Validate angles
-						//	if (start_angle < 0.0 || start_angle >= 360.0 ||
-						//			end_angle < 0.0 || end_angle > 360.0 || start_angle > end_angle)
-						//	{
+					//	// Validate angles
+					//	if (start_angle < 0.0 || start_angle >= 360.0 ||
+					//			end_angle < 0.0 || end_angle > 360.0 || start_angle > end_angle)
+					//	{
 
-						//		fprintf(stderr, "Error: Invalid angle range. Start and end angles must be in [0, 360) and start_angle <= end_angle.\n");
-						//		fflush(stderr);
-						//		exit(1);
-						//	}
+					//		fprintf(stderr, "Error: Invalid angle range. Start and end angles must be in [0, 360) and start_angle <= end_angle.\n");
+					//		fflush(stderr);
+					//		exit(1);
+					//	}
 
 						// Enable specified angle mode
 						map = 1;
 						LRmap = 1;
 						area_mode = 1;
 						specified_angle_mode = 1; // New flag for -LA option
-
+						
 						if (coverage)
 							fprintf(stdout, "specified_angle_mode is set in -L coverage settings.\n");
 
@@ -8565,7 +8695,7 @@ void SplatProcessor::parseArguments(int argc, char* argv[], char* header, int &y
 
 			z--;
 		}
-
+		
 		if (strcmp(argv[x],"-f")==0)
 		{
 			z=x+1;
@@ -8743,7 +8873,7 @@ void SplatProcessor::parseArguments(int argc, char* argv[], char* header, int &y
 			WritePPMLR(mapfile,geo,kml,ngs,tx_site,txsites);
 		else
 		{
-			if (dbm)
+		       	if (dbm)
 				WritePPMDBM(mapfile,geo,kml,ngs,transparent_mode, tx_site,txsites);
 			else
 				WritePPMSS(mapfile,geo,kml,ngs,tx_site,txsites);
@@ -8852,19 +8982,19 @@ void SplatProcessor::parseArguments(int argc, char* argv[], char* header, int &y
 					break;
 
 				case 16: deg_limit=1.5;  /* WAS 2.0 */
-					 break;
+					break;
 
 				case 25: deg_limit=2.0;  /* WAS 3.0 */
-					 break;
+					break;
 
 				case 36: deg_limit=2.5;	 /* New! */
-					 break;
+					break;
 
 				case 49: deg_limit=3.0;  /* New! */
-					 break;
+					break;
 
 				case 64: deg_limit=3.5;  /* New! */
-					 break;
+					break;
 			}
 
 			if (fabs(tx_site[z].lat)<70.0)
@@ -8916,7 +9046,7 @@ void SplatProcessor::parseArguments(int argc, char* argv[], char* header, int &y
 
 		LoadTopoData(max_lon, min_lon, max_lat, min_lat);
 	}
-
+	
 	if (udt_file[0])
 		LoadUDT(udt_file);
 
@@ -9106,8 +9236,8 @@ void SplatProcessor::parseArguments(int argc, char* argv[], char* header, int &y
 			if (coverage)
 				PlotLOSMap(tx_site[x],altitude);
 
-			//			else if (ReadLRParm(tx_site[x],1))
-			//					PlotLRMap(tx_site[x],altitudeLR,ano_filename);
+//			else if (ReadLRParm(tx_site[x],1))
+//					PlotLRMap(tx_site[x],altitudeLR,ano_filename);
 			else if (ReadLRParm(tx_site[x], 1))
 			{
 
@@ -9122,7 +9252,7 @@ void SplatProcessor::parseArguments(int argc, char* argv[], char* header, int &y
 					PlotLRMap(tx_site[x], altitudeLR, ano_filename);
 				}
 
-				SiteReport(mapfile, tx_site[x]);
+			SiteReport(mapfile, tx_site[x]);
 			}
 		}
 	}
@@ -9189,53 +9319,13 @@ void SplatProcessor::parseArguments(int argc, char* argv[], char* header, int &y
 			fclose(fd);
 
 			fprintf(stdout,"\nCommand-line parameter log written to: \"%s\"\n",logfile);
-
+			
 		}
 	}
 
 	printf("\n");
 
 	/* That's all, folks! */
-}
-
-void SplatProcessor::process(int argc, char* argv[]) 
-{
-
-	int y;
-	char header[80];
-	strncpy(splat_version,"1.4.3\0",6);
-
-	if (HD_MODE==1)
-		strncpy(splat_name,"SPLAT! HD\0",10);
-	else
-		strncpy(splat_name,"SPLAT!\0",7);
-
-	strncpy(dashes,"---------------------------------------------------------------------------\0",76);
-
-	if (argc==1)
-	{
-		// ADDED FUNCTION
-		printHelp(splat_name, splat_version, y);
-	}
-
-	y=argc-1;
-
-	// Prepare header for welcome message
-	// ADDED FUNCTION	
-	prepareHeader(splat_name, splat_version, header);
-	
-	parseArguments(argc, argv, header, y);
-}
-
-
-
-
-
-
-int main(int argc, char *argv[])
-{
-	SplatProcessor splat;
-	splat.process(argc, argv);
 
 	return 0;
 }

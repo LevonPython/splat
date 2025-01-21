@@ -9,9 +9,9 @@
 #include <bzlib.h>
 #include <unistd.h>
 #include "fontdata.h"
+#include "splat.h"
 #include <iostream>
 #include <fstream>
-#include "itwom3.0.hpp"
 #include <iomanip>  // For formatting output
 		    
 /*
@@ -21,79 +21,11 @@
 #define HD_MODE 0
 #define MAXPAGES 4
 
-#if HD_MODE==0
-	#if MAXPAGES==4
-	#define ARRAYSIZE 4950
-	#endif
-
-	#if MAXPAGES==9
-	#define ARRAYSIZE 10870
-	#endif
-
-	#if MAXPAGES==16
-	#define ARRAYSIZE 19240
-	#endif
-
-	#if MAXPAGES==25
-	#define ARRAYSIZE 30025
-	#endif
-
-	#if MAXPAGES==36
-	#define ARRAYSIZE 43217
-	#endif
-
-	#if MAXPAGES==49
-	#define ARRAYSIZE 58813
-	#endif
-
-	#if MAXPAGES==64
-	#define ARRAYSIZE 76810
-	#endif
-
-	#define IPPD 1200
-#endif
-
-#if HD_MODE==1
-	#if MAXPAGES==1
-	#define ARRAYSIZE 5092 
-	#endif
-
-	#if MAXPAGES==4
-	#define ARRAYSIZE 14844 
-	#endif
-
-	#if MAXPAGES==9
-	#define ARRAYSIZE 32600
-	#endif
-
-	#if MAXPAGES==16
-	#define ARRAYSIZE 57713
-	#endif
-
-	#if MAXPAGES==25
-	#define ARRAYSIZE 90072
-	#endif
-
-	#if MAXPAGES==36
-	#define ARRAYSIZE 129650
-	#endif
-
-	#if MAXPAGES==49 
-	#define ARRAYSIZE 176437
-	#endif
-
-	#if MAXPAGES==64
-	#define ARRAYSIZE 230430
-	#endif
-
-	#define IPPD 3600
-#endif
-
 class SplatProcessor {
 
 private:
 	char 	string[255], sdf_path[255], opened, gpsav, splat_name[20],
-		splat_version[10], dashes[100], olditm;			
+		splat_version[10], dashes[100], olditm;
 
 	double	earthradius, max_range, forced_erp, dpp, ppd,
 		fzone_clearance, forced_freq, clutter;
@@ -108,7 +40,7 @@ private:
 			float alt;
 			char name[50];
 			char filename[255];
-		    };
+		    } 	site;
 
 	struct path {	double lat[ARRAYSIZE];
 			double lon[ARRAYSIZE];
@@ -153,8 +85,18 @@ private:
 	double elev[ARRAYSIZE+10];
 
 public:
-	SplatProcessor();
-	
+	void point_to_point(double elev[], double tht_m, double rht_m,
+		  double eps_dielect, double sgm_conductivity, double eno_ns_surfref,
+		  double frq_mhz, int radio_climate, int pol, double conf,
+		  double rel, double &dbloss, char *strmode, int &errnum);
+
+	void point_to_point_ITM(double elev[], double tht_m, double rht_m,
+		  double eps_dielect, double sgm_conductivity, double eno_ns_surfref,
+		  double frq_mhz, int radio_climate, int pol, double conf,
+		  double rel, double &dbloss, char *strmode, int &errnum);
+
+	double ITWOMVersion();
+
 	int interpolate(int y0, int y1, int x0, int x1, int n);
 		/* Perform linear interpolation between quantized contour
 		   levels displayed in field strength and path loss maps.
@@ -178,7 +120,7 @@ public:
 		   If lon1 is west of lon2, the result is positive.
 		   If lon1 is east of lon2, the result is negative. */
 
-	char* dec2dms(double decimal);
+	char *dec2dms(double decimal);
 		/* Converts decimal degrees to degrees, minutes, seconds,
 		   (DMS) and returns the result as a character string. */
 
@@ -495,13 +437,13 @@ public:
 	// Function to extract the directory path up to the PPM file
 	void extractSplatPath(const char *ppmFilePath, char *outputPath, size_t outputPathSize);
 
-	void SiteReport(const char *ppmFilePath, struct site xmtr);	
+	void SiteReport(const char *ppmFilePath, struct site xmtr);
 
 	void LoadTopoData(int max_lon, int min_lon, int max_lat, int min_lat);
 		/* This function loads the SDF files required
 		   to cover the limits of the region specified. */ 
 
-	int LoadANO(char *filename);
+	int LoadANO(char *filename)
 		/* This function reads a SPLAT! alphanumeric output 
 		   file (-ani option) for analysis and/or map generation. */
 	
@@ -514,6 +456,5 @@ public:
 	void parseArguments(int argc, char* argv[], char* header, int &y);
 		
 	void process(int argc, char* argv[]);
-};
 
 #endif // SPLAT_PROCESSOR_H

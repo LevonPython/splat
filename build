@@ -22,18 +22,24 @@ fi
 
 build_splat()
 {
-	if [ -r std-parms.h ]; then
-		cp std-parms.h splat.h
-	else
-		echo "/* Parameters for 3 arc-second standard resolution mode of operation */" > std-parms.h
+	# we added the following configs manually in the splat.h file instead of generating it each time we build the program
+	#define HD_MODE 0
+	#define MAXPAGES 4
 
-		echo "#define MAXPAGES 9" >> std-parms.h
-		echo "#define HD_MODE 0" >> std-parms.h
-		cp std-parms.h splat.h
-	fi
 
+#	if [ -r std-parms.h ]; then
+#		cp std-parms.h splat.h
+#	else
+#		echo "/* Parameters for 3 arc-second standard resolution mode of operation */" > std-parms.h
+#
+#		echo "#define MAXPAGES 9" >> std-parms.h
+#		echo "#define HD_MODE 0" >> std-parms.h
+#		cp std-parms.h splat.h
+#	fi
+#
 	echo -n "Compiling SPLAT!... "
-	g++ -O2 -s -fomit-frame-pointer -ffast-math -pipe -march=$cpu $model itwom3.0.cpp splat.cpp -lm -lbz2 -o splat
+	g++ -O2 -s -fomit-frame-pointer -ffast-math -pipe -march=$cpu $model splat.cpp -lm -lbz2 -o splat
+	#g++ -O2 -s -fomit-frame-pointer -ffast-math -pipe -march=$cpu $model itwom3.0.cpp splat.cpp -lm -lbz2 -o splat
 
 	if [ -x splat ]; then
 		echo "Done!"
@@ -42,9 +48,10 @@ build_splat()
 	fi
 
 	if [ -r hd-parms.h ]; then
-		cp hd-parms.h splat.h
+#		cp hd-parms.h splat.h
 		echo -n "Compiling SPLAT! HD... "
-		g++ -O2 -s -fomit-frame-pointer -ffast-math -pipe -march=$cpu $model itwom3.0.cpp splat.cpp -lm -lbz2 -o splat-hd
+		#g++ -O2 -s -fomit-frame-pointer -ffast-math -pipe -march=$cpu $model itwom3.0.cpp splat.cpp -lm -lbz2 -o splat-hd
+		g++ -O2 -s -fomit-frame-pointer -ffast-math -pipe -march=$cpu $model splat.cpp -lm -lbz2 -o splat-hd
 
 		if [ -x splat-hd ]; then
 			echo "Done!"
