@@ -13,6 +13,9 @@
 #include <fstream>
 #include "itwom3.0.hpp"
 #include <iomanip>  // For formatting output
+#include <memory>
+#include <cstring>  // For strcmp
+#include <vector>
 		    
 /*
   Parameters for 3 arc-second standard resolution mode of operation
@@ -155,6 +158,25 @@ private:
 public:
 	SplatProcessor();
 	
+	struct SplatProcessorParams {
+		const char* transmitter_site;
+		const char* itm_cov_type;
+		double receiver_height; 		//reciever height for itm coverage loss analysis
+		double start_angle; 		// start angle for itm coverage loss analysis 
+		double end_angle;               // end angle for itm coverage loss analysis 
+		bool dbm;
+		bool olditm;
+		bool sc;
+		bool ngs;
+		double radius;
+		double frequency;
+		double fresnel_zone;
+		bool metric;
+		const char* elev_path;
+		const char* ppm_path;
+		const char* kml_path;
+	};
+
 	int interpolate(int y0, int y1, int x0, int x1, int n);
 		/* Perform linear interpolation between quantized contour
 		   levels displayed in field strength and path loss maps.
@@ -514,6 +536,8 @@ public:
 	void parseArguments(int argc, char* argv[], char* header, int &y);
 		
 	void process(int argc, char* argv[]);
+
+	void setParameters(const SplatProcessorParams& params);
 };
 
 #endif // SPLAT_PROCESSOR_H

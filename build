@@ -38,7 +38,7 @@ build_splat()
 #	fi
 #
 	echo -n "Compiling SPLAT!... "
-	g++ -O2 -s -fomit-frame-pointer -ffast-math -pipe -march=$cpu $model splat.cpp -lm -lbz2 -o splat
+	g++ -g -O2 -fomit-frame-pointer -ffast-math -pipe -march=$cpu $model splat.cpp -lm -lbz2 -o splat
 	#g++ -O2 -s -fomit-frame-pointer -ffast-math -pipe -march=$cpu $model itwom3.0.cpp splat.cpp -lm -lbz2 -o splat
 
 	if [ -x splat ]; then
@@ -51,7 +51,7 @@ build_splat()
 #		cp hd-parms.h splat.h
 		echo -n "Compiling SPLAT! HD... "
 		#g++ -O2 -s -fomit-frame-pointer -ffast-math -pipe -march=$cpu $model itwom3.0.cpp splat.cpp -lm -lbz2 -o splat-hd
-		g++ -O2 -s -fomit-frame-pointer -ffast-math -pipe -march=$cpu $model splat.cpp -lm -lbz2 -o splat-hd
+		g++ -g -O2 -fomit-frame-pointer -ffast-math -pipe -march=$cpu $model splat.cpp -lm -lbz2 -o splat-hd
 
 		if [ -x splat-hd ]; then
 			echo "Done!"
