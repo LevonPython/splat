@@ -50,13 +50,13 @@
 SplatProcessor::SplatProcessor()
 	: opened(0), 
 	gpsav(0),
-       	max_range(0.0),
+    max_range(0.0),
 	forced_erp(-1.0),
 	fzone_clearance(0.6),
 	min_north(90),
-       	max_north(-90),
-       	min_west(360),
-       	max_west(-1),
+    max_north(-90),
+    min_west(360),
+    max_west(-1),
 	max_elevation(-32768),
 	min_elevation(32768),
 	metric(0),
@@ -9197,7 +9197,7 @@ void SplatProcessor::parseArguments(int argc, char* argv[], char* header, int &y
 	/* That's all, folks! */
 }
 
-void SplatProcessor::process(int argc, char* argv[]) 
+void SplatProcessor::process() 
 {
 	
 	int y;
@@ -9211,118 +9211,132 @@ void SplatProcessor::process(int argc, char* argv[])
 
 	strncpy(dashes,"---------------------------------------------------------------------------\0",76);
 
-	if (argc==1)
+	if (argv.size()==1)
 	{
 		printHelp(splat_name, splat_version, y);
 	}
 
-	y=argc-1;
+	y=argv.size()-1;
 
 	// Prepare header for welcome message
 	prepareHeader(splat_name, splat_version, header);
-	parseArguments(argc, argv, header, y);
+	parseArguments(argv.size(), argv.data(), header, y);
 }
 
 
 void SplatProcessor::setParameters(const SplatProcessorParams& params) 
 {
-	std::vector<char*> argv;
 
-        // Stringify parameters
+	// Stringify parameters
 	argv.push_back("splat");
 
-        if (params.transmitter_site != nullptr && std::strlen(params.transmitter_site) > 0) {
-            argv.push_back("-t");
-            argv.push_back((char*)params.transmitter_site);
-        }
-
-        if (std::strcmp(params.itm_cov_type, "full") == 0){
-            argv.push_back("-L");
-	    std::string receiverHeightStr = std::to_string(params.receiver_height);
-	    argv.push_back(strdup(receiverHeightStr.c_str()));
-	    //argv.push_back((char*)std::to_string(params.receiver_height).c_str());
-	} else if (std::strcmp(params.itm_cov_type, "segment") == 0) {
-	    argv.push_back("-LA");
-	    std::string receiverHeightStr = std::to_string(params.receiver_height);
-	    argv.push_back(strdup(receiverHeightStr.c_str()));
-	    //argv.push_back((char*)std::to_string(params.receiver_height).c_str());
-
-	    std::string startAngleStr = std::to_string(params.start_angle);
-	    argv.push_back(strdup(startAngleStr.c_str()));
-	    //argv.push_back((char*)std::to_string(params.start_angle).c_str());
-
-	    std::string endAngleStr = std::to_string(params.end_angle);
-	    argv.push_back(strdup(endAngleStr.c_str()));
-	    //argv.push_back((char*)std::to_string(params.end_angle).c_str());
+	if (params.transmitter_site != nullptr && std::strlen(params.transmitter_site) > 0)
+	{
+		argv.push_back("-t");
+		argv.push_back((char *)params.transmitter_site);
 	}
 
-        // Add other flags based on booleans (dbm, olditm, sc, ngs)
-        if (params.dbm) {
-            argv.push_back("-dbm");
-        }
+	if (std::strcmp(params.itm_cov_type, "full") == 0)
+	{
+		argv.push_back("-L");
+		std::string receiverHeightStr = std::to_string(params.receiver_height);
+		argv.push_back(strdup(receiverHeightStr.c_str()));
+		// argv.push_back((char*)std::to_string(params.receiver_height).c_str());
+	}
+	else if (std::strcmp(params.itm_cov_type, "segment") == 0)
+	{
+		argv.push_back("-LA");
+		std::string receiverHeightStr = std::to_string(params.receiver_height);
+		argv.push_back(strdup(receiverHeightStr.c_str()));
+		// argv.push_back((char*)std::to_string(params.receiver_height).c_str());
 
-        if (params.olditm) {
-            argv.push_back("-olditm");
-        }
+		std::string startAngleStr = std::to_string(params.start_angle);
+		argv.push_back(strdup(startAngleStr.c_str()));
+		// argv.push_back((char*)std::to_string(params.start_angle).c_str());
 
-        if (params.sc) {
-            argv.push_back("-sc");
-        }
+		std::string endAngleStr = std::to_string(params.end_angle);
+		argv.push_back(strdup(endAngleStr.c_str()));
+		// argv.push_back((char*)std::to_string(params.end_angle).c_str());
+	}
 
-        if (params.ngs) {
-            argv.push_back("-ngs");
-        }
+	// Add other flags based on booleans (dbm, olditm, sc, ngs)
+	if (params.dbm)
+	{
+		argv.push_back("-dbm");
+	}
 
-        // Add radius, frequency, and fresnel_zone if provided
-	if (params.radius > 0.0){
+	if (params.olditm)
+	{
+		argv.push_back("-olditm");
+	}
+
+	if (params.sc)
+	{
+		argv.push_back("-sc");
+	}
+
+	if (params.ngs)
+	{
+		argv.push_back("-ngs");
+	}
+
+	// Add radius, frequency, and fresnel_zone if provided
+	if (params.radius > 0.0)
+	{
 		argv.push_back("-R");
 		std::string radiusStr = std::to_string(params.radius);
 		argv.push_back(strdup(radiusStr.c_str()));
-		//argv.push_back((char*)std::to_string(params.radius).c_str());
+		// argv.push_back((char*)std::to_string(params.radius).c_str());
 	}
-	if (params.frequency > 0.0){
-		argv.push_back("-f");	
-		std::string frequencyStr = std::to_string(params.frequency); 
+	if (params.frequency > 0.0)
+	{
+		argv.push_back("-f");
+		std::string frequencyStr = std::to_string(params.frequency);
 		argv.push_back(strdup(frequencyStr.c_str()));
-		//argv.push_back((char*)std::to_string(params.frequency).c_str());
+		// argv.push_back((char*)std::to_string(params.frequency).c_str());
 	}
-	if (params.fresnel_zone > 0.0){
-		argv.push_back("-fz");	
+	if (params.fresnel_zone > 0.0)
+	{
+		argv.push_back("-fz");
 		std::string fresnelZoneStr = std::to_string(params.fresnel_zone);
 		argv.push_back(strdup(fresnelZoneStr.c_str()));
-		//argv.push_back((char*)std::to_string(params.fresnel_zone).c_str());
+		// argv.push_back((char*)std::to_string(params.fresnel_zone).c_str());
 	}
 
-        // Add flags for metric
-        if (params.metric) {
-            argv.push_back("-metric");
-        }
+	// Add flags for metric
+	if (params.metric)
+	{
+		argv.push_back("-metric");
+	}
 
-        // Add file paths (elev_path, ppm_path, kml_path) if provided
-        if (params.elev_path != nullptr && std::strlen(params.elev_path) > 0) {
-            argv.push_back("-d");
-	    argv.push_back(strdup(params.elev_path));
-            //argv.push_back((char*)params.elev_path);
-        }
+	// Add file paths (elev_path, ppm_path, kml_path) if provided
+	if (params.elev_path != nullptr && std::strlen(params.elev_path) > 0)
+	{
+		argv.push_back("-d");
+		argv.push_back(strdup(params.elev_path));
+		// argv.push_back((char*)params.elev_path);
+	}
 
-        if (params.ppm_path != nullptr && std::strlen(params.ppm_path) > 0) {
-            argv.push_back("-o");
-	    argv.push_back(strdup(params.ppm_path));
-//            argv.push_back((char*)params.ppm_path);
-        }
+	if (params.ppm_path != nullptr && std::strlen(params.ppm_path) > 0)
+	{
+		argv.push_back("-o");
+		argv.push_back(strdup(params.ppm_path));
+		//            argv.push_back((char*)params.ppm_path);
+	}
 
-        if (params.kml_path != nullptr && std::strlen(params.kml_path) > 0) {
-            argv.push_back("-kml");
-	    argv.push_back(strdup(params.kml_path));
-//            argv.push_back((char*)params.kml_path);
-        }
-	
+	if (params.kml_path != nullptr && std::strlen(params.kml_path) > 0)
+	{
+		argv.push_back("-kml");
+		argv.push_back(strdup(params.kml_path));
+		//            argv.push_back((char*)params.kml_path);
+	}
+
 	// Log the final argv for debugging
-	for (int i = 0; i < argv.size(); ++i) {
-		//std::cout << argv[i]<<std::endl;
+	for (int i = 0; i < argv.size(); ++i)
+	{
+		// std::cout << argv[i]<<std::endl;
 		std::cout << "argv[" << i << "] = " << argv[i] << std::endl;
 	}
-	process(argv.size(), argv.data());
 }
 
 
@@ -9353,6 +9367,8 @@ int main(int argc, char *argv[])
 
 	// Call setParameters to string-ify and pass the arguments
 	splat->setParameters(params);
+
+	splat->process();
 
 	return 0;
 }

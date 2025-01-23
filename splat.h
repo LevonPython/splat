@@ -177,6 +177,8 @@ public:
 		const char* kml_path;
 	};
 
+	std::vector<char*> argv;
+
 	int interpolate(int y0, int y1, int x0, int x1, int n);
 		/* Perform linear interpolation between quantized contour
 		   levels displayed in field strength and path loss maps.
@@ -535,7 +537,7 @@ public:
 
 	void parseArguments(int argc, char* argv[], char* header, int &y);
 		
-	void process(int argc, char* argv[]);
+	void process();
 
 	void setParameters(const SplatProcessorParams& params);
 };
