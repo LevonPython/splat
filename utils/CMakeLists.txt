@@ -1,5 +1,9 @@
+# ============================== ADD UTILS SUBDIRECTORY ==============================
+
 # utils/CMakeLists.txt
 cmake_minimum_required(VERSION 3.10)
+
+# ============================== SET COMMON COMPILER FLAGS ==============================
 
 # Set common compiler flags used across all utilities
 set(COMMON_FLAGS
@@ -8,8 +12,14 @@ set(COMMON_FLAGS
     -fomit-frame-pointer
 )
 
+
+# ============================== ADD INCLUDE DIRECTORIES ==============================
+
 # Add include directories for utils
 include_directories(${CMAKE_SOURCE_DIR}/src)
+
+
+# ============================== ADD EXECUTABLES ==============================
 
 # citydecoder
 add_executable(citydecoder citydecoder.c)
@@ -24,13 +34,6 @@ add_executable(srtm2sdf srtm2sdf.c)
 target_compile_options(srtm2sdf PRIVATE ${COMMON_FLAGS})
 target_link_libraries(srtm2sdf PRIVATE bz2)
 
-# Create symbolic link for srtm2sdf-hd
-add_custom_command(
-    TARGET srtm2sdf POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E rm -f srtm2sdf-hd
-    COMMAND ${CMAKE_COMMAND} -E create_symlink srtm2sdf srtm2sdf-hd
-)
-
 # fontdata
 add_executable(fontdata fontdata.c)
 target_compile_options(fontdata PRIVATE ${COMMON_FLAGS})
@@ -40,6 +43,18 @@ target_link_libraries(fontdata PRIVATE z)
 add_executable(bearing bearing.c)
 target_compile_options(bearing PRIVATE ${COMMON_FLAGS})
 target_link_libraries(bearing PRIVATE m)
+
+# ============================== CREATE SYMBOLIC LINK FOR srtm2sdf-hd ==============================
+
+# Create symbolic link for srtm2sdf-hd
+add_custom_command(
+    TARGET srtm2sdf POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E rm -f srtm2sdf-hd
+    COMMAND ${CMAKE_COMMAND} -E create_symlink srtm2sdf srtm2sdf-hd
+)
+
+
+# ============================== ADD INSTALLATION RULES ==============================
 
 # Installation rules
 install(TARGETS
@@ -51,10 +66,10 @@ install(TARGETS
     RUNTIME DESTINATION bin
 )
 
-# Install the symbolic link
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/srtm2sdf-hd
-    DESTINATION bin
-)
+
+# ============================== ADD CLEAN TARGET ==============================
+
+# Clean target
 
 # Clean target
 add_custom_target(clean_utils

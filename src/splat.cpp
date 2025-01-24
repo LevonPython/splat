@@ -9202,7 +9202,7 @@ void SplatProcessor::process()
 	
 	int y;
 	char header[80];
-	strncpy(splat_version,"1.4.3\0",6);
+	strncpy(splat_version,"1.5.0\0",6);
 
 	if (HD_MODE==1)
 		strncpy(splat_name,"SPLAT! HD\0",10);

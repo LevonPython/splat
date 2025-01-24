@@ -1,6 +1,8 @@
+# ============================== Basic Setup ==============================
 cmake_minimum_required(VERSION 3.10)
-project(SPLAT VERSION 1.4.3)
+project(SPLAT VERSION 1.5.0)
 
+# ============================== BUILD_TESTING, HD_MODE and MAXPAGES flags for building options ==============================
 # Enable testing
 option(BUILD_TESTING "Build the testing tree." ON)
 include(CTest)
@@ -8,7 +10,9 @@ include(CTest)
 # Add configuration options with default values
 option(HD_MODE "Enable HD mode" OFF)  # OFF = 0, ON = 1
 set(MAXPAGES "4" CACHE STRING "Set MAXPAGES value (1-64)")
+# cmake -DHD_MODE=ON -DMAXPAGES=8 ..
 
+# ============================== VALIDATE BUILD OPTIONS ==============================
 # Convert HD_MODE boolean to 0/1
 if(HD_MODE)
     set(HD_MODE_VALUE 1)
@@ -20,19 +24,19 @@ endif()
 if(NOT MAXPAGES MATCHES "^[1-9]|[1-5][0-9]|6[0-4]$")
     message(WARNING "MAXPAGES must be between 1 and 64, setting to default value 4")
     set(MAXPAGES "4")
-endif()# Add configuration options
-option(HD_MODE "Enable HD mode" OFF)
-set(MAXPAGES "4" CACHE STRING "Set MAXPAGES value")
+endif()
 
-## Create binary directory for generated files
-#set(GENERATED_DIR "${CMAKE_BINARY_DIR}/generated")
-#file(MAKE_DIRECTORY ${GENERATED_DIR})
+
+# ============================== GENERATE splat_config.h ==============================
 
 # Then the configure_file command
 configure_file(
     "${CMAKE_SOURCE_DIR}/cmake/splat_config.h.in"
     "${CMAKE_SOURCE_DIR}/include/splat_config.h"
 )
+
+
+# ============================== DETECT CPU ARCHITECTURE AND SET MODEL FLAGS ==============================
 
 # Detect CPU architecture and set model flags
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
@@ -47,6 +51,9 @@ elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "sun4u")
     set(MODEL_FLAGS "")
 endif()
 
+
+# ============================== ADD SPLAT EXECUTABLE ==============================
+
 # Main SPLAT executable
 add_executable(splat src/splat.cpp)
 
@@ -56,6 +63,9 @@ target_include_directories(splat PRIVATE
     ${CMAKE_SOURCE_DIR}/utils    # For fontdata.h and other utility headers
     ${CMAKE_SOURCE_DIR}/include  # For generated splat_config.h
 )
+
+
+# ============================== SET COMPILER FLAGS ==============================
 
 # Set compiler flags to match the original command
 target_compile_options(splat PRIVATE
@@ -68,15 +78,23 @@ target_compile_options(splat PRIVATE
     ${MODEL_FLAGS}
 )
 
+
+# ============================== LINK REQUIRED LIBRARIES ==============================
+
 # Link required libraries
 target_link_libraries(splat PRIVATE
     m
     bz2
 )
 
+
+# ============================== ADD UTILS SUBDIRECTORY ==============================
+
 # Add utils subdirectory
 add_subdirectory(utils)
 
+
+# ============================== ADD CUSTOM TARGET TO BUILD EVERYTHING ==============================
 
 # Add custom target to build everything
 add_custom_target(build_all ALL
@@ -90,10 +108,15 @@ add_custom_target(build_all ALL
         splat_test
 )
 
+# ============================== ADD TESTING SUBDIRECTORY ==============================
+
 # Add testing if enabled
 if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()
+
+
+# ============================== ADD INSTALLATION RULES ==============================
 
 # Installation rules
 install(TARGETS splat
