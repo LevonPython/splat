@@ -9349,7 +9349,7 @@ int main(int argc, char *argv[])
 	SplatProcessor::SplatProcessorParams params = {
 		"/home/levonyeghiazaryan/repos/view_shed_project/scripts/output/splat/meghu.qth",  // transmitter_site
 		"full",                                 // coverage type
-		2363.0,                                 // receiver_height
+		2360.0,                                 // receiver_height
 		0.0,                                    // start_angle
 		360.0,                                  // end_angle
 		true,                                   // dbm

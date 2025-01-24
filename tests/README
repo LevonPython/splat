@@ -1,0 +1,23 @@
+These tests cover:
+- Parameter setting and validation
+- Segment coverage parameters
+- File path handling
+- Boolean flags
+- Command line argument generation
+
+Additional tests you might want to add:
+1. Error handling tests
+2. Boundary value tests for numerical parameters
+3. Integration tests with actual file I/O
+4. Memory leak tests
+5. Performance tests for large datasets
+
+Remember to:
+1. Install Google Test framework
+2. Make your code more testable by:
+ - Separating concerns
+ - Making dependencies injectable
+ - Adding appropriate getters/setters for testing
+3. Add more specific test cases based on your requirements
+4. Consider adding mock objects for file operations and external dependencies
+5. Add test coverage reporting
