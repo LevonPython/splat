@@ -9230,10 +9230,40 @@ void SplatProcessor::setParameters(const SplatProcessorParams& params)
 	// Stringify parameters
 	argv.push_back("splat");
 
-	if (params.transmitter_site != nullptr && std::strlen(params.transmitter_site) > 0)
-	{
+	//  ====== Validate parameters ======
+	// Transmitter site Check
+    if (!std::filesystem::exists(params.transmitter_site)) {
+        throw std::invalid_argument("Transmitter site file does not exist");
+    } else {
 		argv.push_back("-t");
 		argv.push_back((char *)params.transmitter_site);
+	}
+
+	// Angle range Check
+	if (params.start_angle < 0 || params.start_angle > 360 ||
+		params.end_angle < 0 || params.end_angle > 360 ||
+		params.start_angle > params.end_angle)
+	{
+		throw std::invalid_argument("Invalid angle range");
+	}
+
+	// Frequency Check
+	if (params.frequency < 20.0 || params.frequency > 20000.0)
+	{
+		throw std::invalid_argument("Frequency must be between 20 MHz and 20 GHz");
+	}
+
+	// Receiver height Check
+
+	if (params.receiver_height < 0)
+	{
+		throw std::invalid_argument("Receiver height must be non-negative");
+	}
+
+	// Coverage type Check
+	if (params.itm_cov_type != "full" && params.itm_cov_type != "segment")
+	{
+		throw std::invalid_argument("Invalid coverage type");
 	}
 
 	if (std::strcmp(params.itm_cov_type, "full") == 0)
@@ -9287,20 +9317,28 @@ void SplatProcessor::setParameters(const SplatProcessorParams& params)
 		std::string radiusStr = std::to_string(params.radius);
 		argv.push_back(strdup(radiusStr.c_str()));
 		// argv.push_back((char*)std::to_string(params.radius).c_str());
+	} else {
+		throw std::invalid_argument("Radius must be positive");
 	}
+
 	if (params.frequency > 0.0)
 	{
 		argv.push_back("-f");
 		std::string frequencyStr = std::to_string(params.frequency);
 		argv.push_back(strdup(frequencyStr.c_str()));
 		// argv.push_back((char*)std::to_string(params.frequency).c_str());
+	} else {
+		throw std::invalid_argument("Frequency must be positive");
 	}
+
 	if (params.fresnel_zone > 0.0)
 	{
 		argv.push_back("-fz");
 		std::string fresnelZoneStr = std::to_string(params.fresnel_zone);
 		argv.push_back(strdup(fresnelZoneStr.c_str()));
 		// argv.push_back((char*)std::to_string(params.fresnel_zone).c_str());
+	} else {
+		throw std::invalid_argument("Fresnel zone must be positive");
 	}
 
 	// Add flags for metric
@@ -9309,23 +9347,28 @@ void SplatProcessor::setParameters(const SplatProcessorParams& params)
 		argv.push_back("-metric");
 	}
 
-	// Add file paths (elev_path, ppm_path, kml_path) if provided
-	if (params.elev_path != nullptr && std::strlen(params.elev_path) > 0)
-	{
+	// Elevation path Check
+	if (!std::filesystem::exists(params.elev_path)) {
+		throw std::invalid_argument("Elevation path does not exist");
+	} else {
 		argv.push_back("-d");
 		argv.push_back(strdup(params.elev_path));
 		// argv.push_back((char*)params.elev_path);
 	}
 
-	if (params.ppm_path != nullptr && std::strlen(params.ppm_path) > 0)
-	{
+	// PPM path Check
+	if (!std::filesystem::exists(params.ppm_path)) {
+		throw std::invalid_argument("PPM path does not exist");
+	} else {
 		argv.push_back("-o");
 		argv.push_back(strdup(params.ppm_path));
-		//            argv.push_back((char*)params.ppm_path);
+		// argv.push_back((char*)params.ppm_path);
 	}
 
-	if (params.kml_path != nullptr && std::strlen(params.kml_path) > 0)
-	{
+	// KML path Check
+	if (!std::filesystem::exists(params.kml_path)) {
+		throw std::invalid_argument("KML path does not exist");
+	} else {
 		argv.push_back("-kml");
 		argv.push_back(strdup(params.kml_path));
 		//            argv.push_back((char*)params.kml_path);
@@ -9350,7 +9393,7 @@ int main(int argc, char *argv[])
 		"/home/levonyeghiazaryan/repos/view_shed_project/scripts/output/splat/meghu.qth",  // transmitter_site
 		"full",                                 // coverage type
 		2360.0,                                 // receiver_height
-		0.0,                                    // start_angle
+		1.0,                                    // start_angle
 		360.0,                                  // end_angle
 		true,                                   // dbm
 		true,                                   // olditm

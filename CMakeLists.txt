@@ -122,3 +122,10 @@ endif()
 install(TARGETS splat
     RUNTIME DESTINATION bin
 )
+
+
+#rm -rf build
+#mkdir build
+#cd build
+#cmake -DBUILD_TESTING=ON ..
+#cmake --build . --target build_all
