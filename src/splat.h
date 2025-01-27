@@ -11,7 +11,6 @@
 #include "fontdata.h"
 #include <iostream>
 #include <fstream>
-#include "itwom3.0.hpp"
 #include <iomanip>  // For formatting output
 #include <memory>
 #include <cstring>  // For strcmp
@@ -179,6 +178,8 @@ public:
 	};
 
 	std::vector<char*> argv;
+
+	virtual ~SplatProcessor() = default;
 
 	int interpolate(int y0, int y1, int x0, int x1, int n);
 		/* Perform linear interpolation between quantized contour
@@ -540,7 +541,7 @@ public:
 		
 	void process();
 
-	void setParameters(const SplatProcessorParams& params);
+	virtual void setParameters(const SplatProcessorParams& params);
 };
 
 #endif // SPLAT_PROCESSOR_H

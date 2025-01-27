@@ -20,6 +20,10 @@ message(STATUS "Building test executable...")
 # Add test executable
 add_executable(splat_test splat_test.cpp)
 
+
+# Add splat.cpp to the test executable
+target_sources(splat_test PRIVATE ${CMAKE_SOURCE_DIR}/src/splat.cpp)
+
 # ============================== INCLUDE DIRECTORIES ==============================
 
 # Include directories
@@ -36,6 +40,7 @@ target_link_libraries(splat_test PRIVATE
     GTest::Main
     m
     bz2
+    splat_lib
 )
 
 # ============================== SET OUTPUT DIRECTORY FOR TEST EXECUTABLE ==============================

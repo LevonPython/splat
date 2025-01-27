@@ -53,12 +53,16 @@ endif()
 
 
 # ============================== ADD SPLAT EXECUTABLE ==============================
+# UNCOMMENT THIS TO BUILD SPLAT EXECUTABLE WITHOUT TESTS
+## Main SPLAT executable
+#add_executable(splat src/splat.cpp)
 
-# Main SPLAT executable
-add_executable(splat src/splat.cpp)
+# Create SPLAT library instead of executable
+# COMMENT THIS IN CASE BULDING EXECUTABLE FILE
+add_library(splat_lib STATIC src/splat.cpp)
 
 # Add include directories
-target_include_directories(splat PRIVATE
+target_include_directories(splat_lib PRIVATE
     ${CMAKE_SOURCE_DIR}/src      # For splat.h
     ${CMAKE_SOURCE_DIR}/utils    # For fontdata.h and other utility headers
     ${CMAKE_SOURCE_DIR}/include  # For generated splat_config.h
@@ -68,7 +72,7 @@ target_include_directories(splat PRIVATE
 # ============================== SET COMPILER FLAGS ==============================
 
 # Set compiler flags to match the original command
-target_compile_options(splat PRIVATE
+target_compile_options(splat_lib PRIVATE
     -g
     -O2
     -fomit-frame-pointer
@@ -82,7 +86,7 @@ target_compile_options(splat PRIVATE
 # ============================== LINK REQUIRED LIBRARIES ==============================
 
 # Link required libraries
-target_link_libraries(splat PRIVATE
+target_link_libraries(splat_lib PRIVATE
     m
     bz2
 )
@@ -119,7 +123,7 @@ endif()
 # ============================== ADD INSTALLATION RULES ==============================
 
 # Installation rules
-install(TARGETS splat
+install(TARGETS splat_lib
     RUNTIME DESTINATION bin
 )
 

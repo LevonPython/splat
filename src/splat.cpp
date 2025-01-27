@@ -21,6 +21,7 @@
 \****************************************************************************/
 
 #include "splat.h"
+#include "itwom3.0.hpp"
 
 		    
 #define GAMMA 2.5
@@ -9261,10 +9262,12 @@ void SplatProcessor::setParameters(const SplatProcessorParams& params)
 	}
 
 	// Coverage type Check
-	if (params.itm_cov_type != "full" && params.itm_cov_type != "segment")
-	{
-		throw std::invalid_argument("Invalid coverage type");
-	}
+	if (std::strcmp(params.itm_cov_type, "full") != 0 && 
+        std::strcmp(params.itm_cov_type, "segment") != 0)
+    {
+        std::cout << "Invalid itm_cov_type: " << params.itm_cov_type << std::endl;
+        throw std::invalid_argument("Invalid itm_cov_type");
+    }
 
 	if (std::strcmp(params.itm_cov_type, "full") == 0)
 	{
@@ -9384,36 +9387,36 @@ void SplatProcessor::setParameters(const SplatProcessorParams& params)
 
 
 
-int main(int argc, char *argv[])
-{
-	std::unique_ptr<SplatProcessor> splat = std::make_unique<SplatProcessor>();
-	
-	// Prepare the parameters in a struct
-	SplatProcessor::SplatProcessorParams params = {
-		"/home/levonyeghiazaryan/repos/view_shed_project/scripts/output/splat/meghu.qth",  // transmitter_site
-		"full",                                 // coverage type
-		2360.0,                                 // receiver_height
-		1.0,                                    // start_angle
-		360.0,                                  // end_angle
-		true,                                   // dbm
-		true,                                   // olditm
-		true,                                   // sc
-		true,                                   // ngs
-		25.0,                                   // radius
-		1400.0,                                 // frequency
-		40.0,                                   // fresnel_zone
-		true,                                   // metric
-		"/home/levonyeghiazaryan/repos/view_shed_project/elev_data/", // elev_path
-		"/home/levonyeghiazaryan/repos/view_shed_project/scripts/output/splat/coverage_map_meghu.ppm", // ppm_path
-		"/home/levonyeghiazaryan/repos/view_shed_project/scripts/output/splat/coverage_map_meghu.kml"  // kml_path
-	};
-
-	// Call setParameters to string-ify and pass the arguments
-	splat->setParameters(params);
-
-	splat->process();
-
-	return 0;
-}
+//int main(int argc, char *argv[])
+//{
+//	std::unique_ptr<SplatProcessor> splat = std::make_unique<SplatProcessor>();
+//	
+//	// Prepare the parameters in a struct
+//	SplatProcessor::SplatProcessorParams params = {
+//		"/home/levonyeghiazaryan/repos/view_shed_project/scripts/output/splat/meghu.qth",  // transmitter_site
+//		"full",                                 // coverage type
+//		2360.0,                                 // receiver_height
+//		1.0,                                    // start_angle
+//		360.0,                                  // end_angle
+//		true,                                   // dbm
+//		true,                                   // olditm
+//		true,                                   // sc
+//		true,                                   // ngs
+//		25.0,                                   // radius
+//		1400.0,                                 // frequency
+//		40.0,                                   // fresnel_zone
+//		true,                                   // metric
+//		"/home/levonyeghiazaryan/repos/view_shed_project/elev_data/", // elev_path
+//		"/home/levonyeghiazaryan/repos/view_shed_project/scripts/output/splat/coverage_map_meghu.ppm", // ppm_path
+//		"/home/levonyeghiazaryan/repos/view_shed_project/scripts/output/splat/coverage_map_meghu.kml"  // kml_path
+//	};
+//
+//	// Call setParameters to string-ify and pass the arguments
+//	splat->setParameters(params);
+//
+//	splat->process();
+//
+//	return 0;
+//}
 
 
