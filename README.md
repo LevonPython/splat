@@ -13,31 +13,35 @@ SPLAT! (Signal Propagation, Loss, And Terrain) is an RF Signal Propagation, Loss
 
 On Ubuntu/Debian systems, install the prerequisites with:
 
-bash
+```bash
 sudo apt-get update
 sudo apt-get install build-essential cmake libbz2-dev libgtest-dev
-
+```
 
 ### Basic Build Instructions
 
 1. Clone the repository:
-bash
+```bash
 git clone <repository-url>
 cd splat
-
+```
 
 2. Create and enter the build directory:
-bash
+```bash
 mkdir build
 cd build
-
+```
 
 3. Configure and build with default settings:
-bash
-Configure
+Configuring
+```bash
 cmake ..
-Build
+```
+
+Building
+```bash
 cmake --build . --target build_all
+```
 
 
 ### Configuration Options
@@ -49,36 +53,43 @@ SPLAT can be configured with the following options:
 
 To build with specific options:
 
-bash
+```bash
 cmake -DHD_MODE=ON -DMAXPAGES=8 ..
 cmake --build . --target build_all
-
+```
 
 ### Build Variants
 
 1. Standard Resolution Build (default):
-bash
+```bash
 cmake -DHD_MODE=OFF -DMAXPAGES=4 ..
 cmake --build . --target build_all
+```
 
 2. HD Resolution Build:
-bash
+```bash
 cmake -DHD_MODE=ON -DMAXPAGES=8 ..
 cmake --build . --target build_all
-
+```
 
 
 ### Building Tests
 
 To build and run the tests:
-bash
-Configure with testing enabled
-cmake -DBUILD_TESTING=ON ..
-Build
-cmake --build . --target build_all
-Run tests
-ctest
 
+Configure with testing enabled
+```bash
+cmake -DBUILD_TESTING=ON ..
+```
+Building
+```bash
+cmake --build . --target build_all
+```
+
+Running tests
+```bash
+ctest
+```
 
 ### Project Structure
 
@@ -113,9 +124,11 @@ After successful compilation, you'll find:
 ### Installation
 
 To install SPLAT and its utilities:
-bash
+*This overrides the root configs of the splat on the root directory of the computer
+No need to do this step, if you run splat in the scope of the project only
+```bash
 sudo cmake --install .
-
+```
 
 This will install:
 - Executables to `/usr/local/bin/`
@@ -124,9 +137,9 @@ This will install:
 ### Troubleshooting
 
 1. If CMake can't find bz2:
-bash
+```bash
 sudo apt-get install libbz2-dev
-
+```
 
 
 2. If you get compilation errors related to HD_MODE or MAXPAGES:
@@ -135,9 +148,9 @@ sudo apt-get install libbz2-dev
 
 3. For test-related issues:
 
-bash
+```bash
 sudo apt-get install libgtest-dev
-
+```
 
 ### Contributing
 
