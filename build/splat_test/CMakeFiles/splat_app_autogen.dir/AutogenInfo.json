@@ -1,0 +1,137 @@
+{
+	"BUILD_DIR" : "/home/levonyeghiazaryan/repos/splatRepo/splat/build/splat_test/splat_app_autogen",
+	"CMAKE_BINARY_DIR" : "/home/levonyeghiazaryan/repos/splatRepo/splat/build",
+	"CMAKE_CURRENT_BINARY_DIR" : "/home/levonyeghiazaryan/repos/splatRepo/splat/build/splat_test",
+	"CMAKE_CURRENT_SOURCE_DIR" : "/home/levonyeghiazaryan/repos/splatRepo/splat/test",
+	"CMAKE_EXECUTABLE" : "/usr/local/lib/python3.10/dist-packages/cmake/data/bin/cmake",
+	"CMAKE_LIST_FILES" : 
+	[
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/test/CMakeLists.txt",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/smsplat.qrc",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/smsplat.qrc"
+	],
+	"CMAKE_SOURCE_DIR" : "/home/levonyeghiazaryan/repos/splatRepo/splat",
+	"CROSS_CONFIG" : false,
+	"DEP_FILE" : "/home/levonyeghiazaryan/repos/splatRepo/splat/build/splat_test/splat_app_autogen/deps",
+	"DEP_FILE_RULE_NAME" : "splat_app_autogen/timestamp",
+	"HEADERS" : [],
+	"HEADER_EXTENSIONS" : [ "h", "hh", "h++", "hm", "hpp", "hxx", "in", "txx" ],
+	"INCLUDE_DIR" : "/home/levonyeghiazaryan/repos/splatRepo/splat/build/splat_test/splat_app_autogen/include",
+	"MOC_COMPILATION_FILE" : "/home/levonyeghiazaryan/repos/splatRepo/splat/build/splat_test/splat_app_autogen/mocs_compilation.cpp",
+	"MOC_DEFINITIONS" : 
+	[
+		"QT_CORE_LIB",
+		"QT_GUI_LIB",
+		"QT_NETWORK_LIB",
+		"QT_NO_DEBUG",
+		"QT_OPENGL_LIB",
+		"QT_QMLINTEGRATION_LIB",
+		"QT_QMLMODELS_LIB",
+		"QT_QML_LIB",
+		"QT_QUICK_LIB",
+		"QT_SQL_LIB"
+	],
+	"MOC_DEPEND_FILTERS" : 
+	[
+		[
+			"Q_PLUGIN_METADATA",
+			"[\n][ \t]*Q_PLUGIN_METADATA[ \t]*\\([^\\)]*FILE[ \t]*\"([^\"]+)\""
+		]
+	],
+	"MOC_INCLUDES" : 
+	[
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/QtSMSplat",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/QtSMSplat",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/utils",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/SMSplatListModel",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/SMSplatDatabase",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/external/smsplat/utils",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/external/smsplat/SMSplatManager/include",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/external/smsplat/SMSplat/src",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/SMSplatListModel",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/utils",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/external/smsplat/utils",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/SMSplatDatabase",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/utils",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/external/smsplat/utils",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/external/smsplat/SMSplatManager/include",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/external/smsplat/SMSplatManager/utils",
+		"/usr/include/gdal",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/utils",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/external/smsplat/utils",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/external/smsplat/utils",
+		"/home/levonyeghiazaryan/Qt/6.6.3/gcc_64/include/QtCore",
+		"/home/levonyeghiazaryan/Qt/6.6.3/gcc_64/include",
+		"/home/levonyeghiazaryan/Qt/6.6.3/gcc_64/mkspecs/linux-g++",
+		"/home/levonyeghiazaryan/Qt/6.6.3/gcc_64/include/QtGui",
+		"/home/levonyeghiazaryan/Qt/6.6.3/gcc_64/include/QtQuick",
+		"/home/levonyeghiazaryan/Qt/6.6.3/gcc_64/include/QtQml",
+		"/home/levonyeghiazaryan/Qt/6.6.3/gcc_64/include/QtQmlIntegration",
+		"/home/levonyeghiazaryan/Qt/6.6.3/gcc_64/include/QtNetwork",
+		"/home/levonyeghiazaryan/Qt/6.6.3/gcc_64/include/QtQmlModels",
+		"/home/levonyeghiazaryan/Qt/6.6.3/gcc_64/include/QtOpenGL",
+		"/home/levonyeghiazaryan/Qt/6.6.3/gcc_64/include/QtSql",
+		"/usr/include/opencv4",
+		"/usr/include",
+		"/usr/include/c++/11",
+		"/usr/include/x86_64-linux-gnu/c++/11",
+		"/usr/include/c++/11/backward",
+		"/usr/lib/gcc/x86_64-linux-gnu/11/include",
+		"/usr/local/include",
+		"/usr/include/x86_64-linux-gnu"
+	],
+	"MOC_MACRO_NAMES" : 
+	[
+		"Q_OBJECT",
+		"Q_GADGET",
+		"Q_NAMESPACE",
+		"Q_NAMESPACE_EXPORT",
+		"Q_GADGET_EXPORT"
+	],
+	"MOC_OPTIONS" : [],
+	"MOC_PATH_PREFIX" : false,
+	"MOC_PREDEFS_CMD" : 
+	[
+		"/usr/bin/c++",
+		"-std=gnu++17",
+		"-dM",
+		"-E",
+		"-c",
+		"/usr/local/lib/python3.10/dist-packages/cmake/data/share/cmake-3.30/Modules/CMakeCXXCompilerABI.cpp"
+	],
+	"MOC_PREDEFS_FILE" : "/home/levonyeghiazaryan/repos/splatRepo/splat/build/splat_test/splat_app_autogen/moc_predefs.h",
+	"MOC_RELAXED_MODE" : false,
+	"MOC_SKIP" : 
+	[
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/build/splat_test/test_smsplat_list_model_autogen/mocs_compilation.cpp",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/build/splat_test/test_smsplat_ui_autogen/mocs_compilation.cpp",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/build/splat_test/test_smsplatdb_autogen/mocs_compilation.cpp"
+	],
+	"MULTI_CONFIG" : false,
+	"PARALLEL" : 4,
+	"PARSE_CACHE_FILE" : "/home/levonyeghiazaryan/repos/splatRepo/splat/build/splat_test/CMakeFiles/splat_app_autogen.dir/ParseCache.txt",
+	"QT_MOC_EXECUTABLE" : "/home/levonyeghiazaryan/Qt/6.6.3/gcc_64/./libexec/moc",
+	"QT_UIC_EXECUTABLE" : "",
+	"QT_VERSION_MAJOR" : 6,
+	"QT_VERSION_MINOR" : 6,
+	"SETTINGS_FILE" : "/home/levonyeghiazaryan/repos/splatRepo/splat/build/splat_test/CMakeFiles/splat_app_autogen.dir/AutogenUsed.txt",
+	"SOURCES" : 
+	[
+		[
+			"/home/levonyeghiazaryan/repos/splatRepo/splat/test/splat_app.cpp",
+			"MU",
+			null
+		]
+	],
+	"UIC_OPTIONS" : [],
+	"UIC_SEARCH_PATHS" : [],
+	"UIC_SKIP" : 
+	[
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/build/splat_test/test_smsplat_list_model_autogen/mocs_compilation.cpp",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/build/splat_test/test_smsplat_ui_autogen/mocs_compilation.cpp",
+		"/home/levonyeghiazaryan/repos/splatRepo/splat/build/splat_test/test_smsplatdb_autogen/mocs_compilation.cpp"
+	],
+	"UIC_UI_FILES" : [],
+	"USE_BETTER_GRAPH" : false,
+	"VERBOSITY" : 0
+}

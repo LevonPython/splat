@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG CMakeFiles/bearing.dir/bearing_autogen/mocs_compilation.cpp.o CMakeFiles/bearing.dir/bearing.c.o -o ../../../bin/bearing  -lm

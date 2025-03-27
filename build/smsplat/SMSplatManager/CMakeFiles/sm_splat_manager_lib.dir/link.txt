@@ -1,0 +1,2 @@
+/usr/bin/ar qc ../../lib/libsm_splat_manager_lib.a CMakeFiles/sm_splat_manager_lib.dir/sm_splat_manager_lib_autogen/mocs_compilation.cpp.o CMakeFiles/sm_splat_manager_lib.dir/src/sm_splat_manager.cpp.o CMakeFiles/sm_splat_manager_lib.dir/src/gdal_handler.cpp.o
+/usr/bin/ranlib ../../lib/libsm_splat_manager_lib.a

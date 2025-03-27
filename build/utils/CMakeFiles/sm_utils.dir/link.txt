@@ -1,0 +1,2 @@
+/usr/bin/ar qc ../lib/libsm_utils.a CMakeFiles/sm_utils.dir/sm_utils_autogen/mocs_compilation.cpp.o CMakeFiles/sm_utils.dir/sm_splat_info.cpp.o CMakeFiles/sm_utils.dir/image_utils.cpp.o
+/usr/bin/ranlib ../lib/libsm_utils.a

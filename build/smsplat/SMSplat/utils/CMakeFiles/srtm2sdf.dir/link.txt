@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG CMakeFiles/srtm2sdf.dir/srtm2sdf_autogen/mocs_compilation.cpp.o CMakeFiles/srtm2sdf.dir/srtm2sdf.c.o -o ../../../bin/srtm2sdf  -lbz2

@@ -1,0 +1,88 @@
+# C++ build artifacts
+*.o
+*.obj
+*.so
+*.dylib
+*.dll
+*.a
+*.lib
+*.exe
+*.out
+*.app
+
+# Qt specific
+*.pro.user
+*.pro.user.*
+*.qbs.user
+*.qbs.user.*
+*.moc
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+Makefile*
+*build-*
+*.qm
+*.qt
+.qmake.stash
+
+# CMake
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Testing/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+*-build/
+build/
+out/
+
+# IDE specific
+# Visual Studio
+*.vs/
+*.sln
+*.vcxproj*
+*.suo
+*.user
+*.userosscache
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.opendb
+.vscode/
+.idea/
+*.swp
+*~
+
+# QtCreator
+*.autosave
+*.creator.user
+*.creator.user.*
+*.config
+*.files
+*.includes
+*.cxxflags
+*.cflags
+
+# Linux
+*~
+
+# Project specific
+*.sqlite
+*.sqlite3
+*.db
+temp/
+logs/
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Generated documentation
+doc/
+SMSplat/tests/tests/splat_test

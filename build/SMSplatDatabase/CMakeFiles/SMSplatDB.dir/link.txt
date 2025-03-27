@@ -1,0 +1,2 @@
+/usr/bin/ar qc ../lib/libSMSplatDB.a CMakeFiles/SMSplatDB.dir/SMSplatDB_autogen/mocs_compilation.cpp.o CMakeFiles/SMSplatDB.dir/SMSplatDB.cpp.o
+/usr/bin/ranlib ../lib/libSMSplatDB.a

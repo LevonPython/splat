@@ -1,0 +1,3 @@
+[submodule "external/smsplat"]
+	path = external/smsplat
+	url = ssh://git@gitlab.aerodynamics.am:2222/levon.yeghiazaryan/smsplat.git

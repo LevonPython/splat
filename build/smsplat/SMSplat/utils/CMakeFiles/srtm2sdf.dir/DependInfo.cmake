@@ -1,0 +1,25 @@
+
+# Consider dependencies only in project.
+set(CMAKE_DEPENDS_IN_PROJECT_ONLY OFF)
+
+# The set of languages for which implicit dependencies are needed:
+set(CMAKE_DEPENDS_LANGUAGES
+  )
+
+# The set of dependency files which are needed:
+set(CMAKE_DEPENDS_DEPENDENCY_FILES
+  "/home/levonyeghiazaryan/repos/splatRepo/splat/external/smsplat/SMSplat/utils/srtm2sdf.c" "smsplat/SMSplat/utils/CMakeFiles/srtm2sdf.dir/srtm2sdf.c.o" "gcc" "smsplat/SMSplat/utils/CMakeFiles/srtm2sdf.dir/srtm2sdf.c.o.d"
+  "" "smsplat/SMSplat/utils/srtm2sdf_autogen/timestamp" "custom" "smsplat/SMSplat/utils/srtm2sdf_autogen/deps"
+  "/home/levonyeghiazaryan/repos/splatRepo/splat/build/smsplat/SMSplat/utils/srtm2sdf_autogen/mocs_compilation.cpp" "smsplat/SMSplat/utils/CMakeFiles/srtm2sdf.dir/srtm2sdf_autogen/mocs_compilation.cpp.o" "gcc" "smsplat/SMSplat/utils/CMakeFiles/srtm2sdf.dir/srtm2sdf_autogen/mocs_compilation.cpp.o.d"
+  )
+
+# Targets to which this target links which contain Fortran sources.
+set(CMAKE_Fortran_TARGET_LINKED_INFO_FILES
+  )
+
+# Targets to which this target links which contain Fortran sources.
+set(CMAKE_Fortran_TARGET_FORWARD_LINKED_INFO_FILES
+  )
+
+# Fortran module output directory.
+set(CMAKE_Fortran_TARGET_MODULE_DIR "")

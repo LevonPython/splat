@@ -1,0 +1,7 @@
+#ifndef SPLAT_CONFIG_H
+#define SPLAT_CONFIG_H
+
+#cmakedefine01 HD_MODE
+#define MAXPAGES @MAXPAGES@
+
+#endif // SPLAT_CONFIG_H

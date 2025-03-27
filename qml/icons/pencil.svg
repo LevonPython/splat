@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="20px" height="20px" viewBox="0 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>EditRounded</title>
+    <defs>
+        <path d="M-3.55271368e-15,12.0521084 L-3.55271368e-15,14.5854417 C-3.55271368e-15,14.8187751 0.183333334,15.0021084 0.416666668,15.0021084 L2.95000001,15.0021084 C3.05833335,15.0021084 3.16666668,14.9604417 3.24166668,14.8771084 L12.3416667,5.78541669 L9.21666671,2.66041668 L0.125000001,11.7521084 C0.0416666668,11.8354417 -3.55271368e-15,11.9354417 -3.55271368e-15,12.0521084 Z M14.7583334,3.36875001 C15.0833334,3.04375001 15.0833334,2.51875001 14.7583334,2.19375001 L12.8083334,0.243750001 C12.4833334,-0.0812500003 11.9583334,-0.0812500003 11.6333334,0.243750001 L10.1083334,1.76875001 L13.2333334,4.89375002 L14.7583334,3.36875001 Z" id="path-1"></path>
+    </defs>
+    <g id="Symbols" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Covarege_list/generated" transform="translate(-16, -8)">
+            <g id="EditRounded" transform="translate(18.5, 10.4976)">
+                <mask id="mask-2" fill="white">
+                    <use xlink:href="#path-1"></use>
+                </mask>
+                <use fill="#767676" fill-rule="nonzero" xlink:href="#path-1"></use>
+            </g>
+        </g>
+    </g>
+</svg>

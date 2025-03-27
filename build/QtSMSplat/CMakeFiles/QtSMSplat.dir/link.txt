@@ -1,0 +1,2 @@
+/usr/bin/ar qc ../lib/libQtSMSplat.a CMakeFiles/QtSMSplat.dir/QtSMSplat_autogen/mocs_compilation.cpp.o CMakeFiles/QtSMSplat.dir/QtSMSplat.cpp.o CMakeFiles/QtSMSplat.dir/SMSplatImageProvider.cpp.o CMakeFiles/QtSMSplat.dir/QtSMSplat_autogen/YCDLW3T4OG/qrc_smsplat.cpp.o
+/usr/bin/ranlib ../lib/libQtSMSplat.a

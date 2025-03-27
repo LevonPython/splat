@@ -1,0 +1,54 @@
+<RCC>
+    <qresource prefix="custom/fonts">
+		<file alias="robotoreg">qml/fonts/Roboto/Roboto-Regular.ttf</file>
+		<file alias="robotomed">qml/fonts/Roboto/Roboto-Medium.ttf</file>
+	</qresource>
+    <qresource prefix="/qml">
+        <file alias="SMSplat/qmldir">qml/qmldir</file>
+        <file alias="SMSplat/Test.qml">qml/Test.qml</file>
+        <file alias="SMSplat/TestUI.qml">qml/TestUI.qml</file>
+        <file alias="SMSplat/SplatUI.qml">qml/SplatUI.qml</file>
+        <file alias="SMSplat/InputMenu.qml">qml/InputMenu.qml</file>
+        <file alias="SMSplat/InputField.qml">qml/InputField.qml</file>
+        <file alias="SMSplat/DropdownField.qml">qml/DropdownField.qml</file>
+        <file alias="SMSplat/SplatQmlGlobals.qml">qml/SplatQmlGlobals.qml</file>
+        <file alias="SMSplat/GenerateButton.qml">qml/GenerateButton.qml</file>
+        <file alias="SMSplat/CustomRoundButton.qml">qml/CustomRoundButton.qml</file>
+        <file alias="SMSplat/RectangleButton.qml">qml/RectangleButton.qml</file>
+        <file alias="SMSplat/ListEntry.qml">qml/ListEntry.qml</file>
+        <file alias="SMSplat/CoverageList.qml">qml/CoverageList.qml</file>
+        <file alias="SMSplat/ImportView.qml">qml/ImportView.qml</file>
+        <file alias="SMSplat/SplatCheckBox.qml">qml/SplatCheckBox.qml</file>
+        <file alias="SMSplat/ImportListEntry.qml">qml/ImportListEntry.qml</file>
+        <file alias="SMSplat/ImportListView.qml">qml/ImportListView.qml</file>
+        <file alias="SMSplat/ActionsMenu.qml">qml/ActionsMenu.qml</file>
+        <file alias="SMSplat/ActionsMenuEntry.qml">qml/ActionsMenuEntry.qml</file>
+        <file alias="SMSplat/HorizontalDivider.qml">qml/HorizontalDivider.qml</file>
+        <file alias="SMSplat/VerticalDivider.qml">qml/VerticalDivider.qml</file>
+        <file alias="SMSplat/CustomPopup.qml">qml/CustomPopup.qml</file>
+        <file alias="SMSplat/DecisionButton.qml">qml/DecisionButton.qml</file>
+        <file alias="SMSplat/DeletePopup.qml">qml/DeletePopup.qml</file>
+        <file alias="SMSplat/ReplacePopup.qml">qml/ReplacePopup.qml</file>
+        <file alias="SMSplat/UnsavedPopup.qml">qml/UnsavedPopup.qml</file>
+
+    </qresource>
+    <qresource prefix="/img">
+        <file alias="plus.svg">qml/icons/plus.svg</file>
+        <file alias="save.svg">qml/icons/save.svg</file>
+        <file alias="close.svg">qml/icons/close.svg</file>
+        <file alias="signal.svg">qml/icons/signal.svg</file>
+        <file alias="upload.svg">qml/icons/upload.svg</file>
+        <file alias="upload_gray.svg">qml/icons/upload_gray.svg</file>
+        <file alias="arrow_up.svg">qml/icons/arrow_up.svg</file>
+        <file alias="arrow_down.svg">qml/icons/arrow_down.svg</file>
+        <file alias="pencil.svg">qml/icons/pencil.svg</file>
+        <file alias="check.svg">qml/icons/check.svg</file>
+        <file alias="indeterminate.svg">qml/icons/indeterminate.svg</file>
+        <file alias="uncheck.svg">qml/icons/uncheck.svg</file>
+        <file alias="eye.svg">qml/icons/eye.svg</file>
+        <file alias="trashbin.svg">qml/icons/trashbin.svg</file>
+        <file alias="duplicate.svg">qml/icons/duplicate.svg</file>
+        <file alias="threedots.svg">qml/icons/threedots.svg</file>
+        <file alias="warning.svg">qml/icons/warning.svg</file>
+    </qresource>
+</RCC>

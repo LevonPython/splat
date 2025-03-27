@@ -1,0 +1,4 @@
+srtm2sdf_autogen/timestamp: \
+	/home/levonyeghiazaryan/repos/splatRepo/splat/external/smsplat/SMSplat/utils/CMakeLists.txt \
+	/home/levonyeghiazaryan/repos/splatRepo/splat/external/smsplat/SMSplat/utils/srtm2sdf.c \
+	/usr/local/lib/python3.10/dist-packages/cmake/data/bin/cmake

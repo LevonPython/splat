@@ -1,0 +1,2 @@
+/usr/bin/ar qc ../lib/libSMSplatListModel.a CMakeFiles/SMSplatListModel.dir/SMSplatListModel_autogen/mocs_compilation.cpp.o CMakeFiles/SMSplatListModel.dir/SMSplatListModel.cpp.o CMakeFiles/SMSplatListModel.dir/InputListModel.cpp.o
+/usr/bin/ranlib ../lib/libSMSplatListModel.a

@@ -1,0 +1,2 @@
+/usr/bin/ar qc ../../lib/libsplat_lib.a CMakeFiles/splat_lib.dir/splat_lib_autogen/mocs_compilation.cpp.o CMakeFiles/splat_lib.dir/src/splat.cpp.o
+/usr/bin/ranlib ../../lib/libsplat_lib.a

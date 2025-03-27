@@ -1,0 +1,27 @@
+module SMSplat
+
+singleton  SplatQmlGlobals  1.0     SplatQmlGlobals.qml
+Test                        1.0     Test.qml
+TestUI                      1.0     TestUI.qml
+InputField                  1.0     InputField.qml
+DropdownField               1.0     DropdownField.qml
+ImportView                  1.0     ImportView.qml
+SplatUI                     1.0     SplatUI.qml
+InputMenu                   1.0     InputMenu.qml
+GenerateButton              1.0     GenerateButton.qml
+CustomRoundButton           1.0     CustomRoundButton.qml
+RectangleButton             1.0     RectangleButton.qml
+ListEntry                   1.0     ListEntry.qml
+CoverageList                1.0     CoverageList.qml
+SplatCheckBox               1.0     SplatCheckBox.qml
+ImportListEntry             1.0     ImportListEntry.qml
+ImportListView              1.0     ImportListView.qml
+ActionsMenu                 1.0     ActionsMenu.qml
+ActionsMenuEntry            1.0     ActionsMenuEntry.qml
+HorizontalDivider           1.0     HorizontalDivider.qml
+VerticalDivider             1.0     VerticalDivider.qml
+CustomPopup                 1.0     CustomPopup.qml
+DecisionButton              1.0     DecisionButton.qml
+DeletePopup                 1.0     DeletePopup.qml
+ReplacePopup                1.0     ReplacePopup.qml
+UnsavedPopup                1.0     UnsavedPopup.qml

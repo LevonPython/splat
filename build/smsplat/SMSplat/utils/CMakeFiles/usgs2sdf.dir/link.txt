@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG CMakeFiles/usgs2sdf.dir/usgs2sdf_autogen/mocs_compilation.cpp.o CMakeFiles/usgs2sdf.dir/usgs2sdf.c.o -o ../../../bin/usgs2sdf
